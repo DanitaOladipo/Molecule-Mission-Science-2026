@@ -29,11 +29,54 @@
     const musicStatus = document.getElementById("musicStatus");
     const creatorBackButton = document.getElementById("creatorBackButton");
     const mainMenuButton = document.getElementById("mainMenuButton");
+    const narratorSubtitle = document.getElementById("narratorSubtitle");
+    const narratorVoiceToggle = document.getElementById("narratorVoiceToggle");
+    const narratorVoiceStatus = document.getElementById("narratorVoiceStatus");
+    const explorerAvatar = document.getElementById("explorerAvatar");
+    const explorerAccessory = document.getElementById("explorerAccessory");
+    const explorerOutfit = document.getElementById("explorerOutfit");
+    const explorerName = document.getElementById("explorerName");
+    const explorerSpecialty = document.getElementById("explorerSpecialty");
+    const inventoryCount = document.getElementById("inventoryCount");
+    const inventoryCopy = document.getElementById("inventoryCopy");
+    const inventoryItems = document.getElementById("inventoryItems");
+    const shareQrButton = document.getElementById("shareQrButton");
+    const qrDialog = document.getElementById("qrDialog");
+    const qrImage = document.getElementById("qrImage");
+    const qrStatus = document.getElementById("qrStatus");
+    const qrCloseButton = document.getElementById("qrCloseButton");
 
     const missions = [
-      { state: "solid", title: "Freeze the sample", copy: "Cool the water until it becomes a solid. Aim for 0°C or colder." },
-      { state: "liquid", title: "Melt it back", copy: "Warm the ice until it becomes liquid water. Aim for above 0°C and below 100°C." },
-      { state: "gas", title: "Send it soaring", copy: "Heat the water until it becomes a gas. Aim for 100°C or hotter." }
+      {
+        state: "solid",
+        title: "Mission 1 · Freeze and inspect",
+        copy: "Cool the water to 0°C or colder, then inspect the molecules locked in their solid structure.",
+        narration: "First, cool the sample to 0°C or colder. Then inspect the molecules to learn how a solid holds its shape.",
+        scanGoal: 1,
+        calibratedTemperature: 0
+      },
+      {
+        state: "liquid",
+        title: "Mission 2 · Melt and map",
+        copy: "Warm the ice above 0°C but below 100°C, then map the moving liquid molecules.",
+        narration: "Now warm the ice until it melts. Map the moving molecules while the sample is liquid—above 0°C and below 100°C.",
+        scanGoal: 3,
+        calibratedTemperature: 50
+      },
+      {
+        state: "gas",
+        title: "Mission 3 · Evaporate and explore",
+        copy: "Heat the water to 100°C or hotter, then explore the molecules spreading through the sample.",
+        narration: "For the final mission, heat the water to 100°C or hotter. Explore the fast-moving gas molecules to finish your journey.",
+        scanGoal: 5,
+        calibratedTemperature: 100
+      }
+    ];
+    const wardrobeItems = [
+      { id: "mission-suit", name: "Mission suit", emoji: "🧥", slot: "outfit", rewardMission: 0 },
+      { id: "safety-goggles", name: "Safety goggles", emoji: "🥽", slot: "accessory", rewardMission: 1 },
+      { id: "lab-coat", name: "Lab coat", emoji: "🥼", slot: "outfit", rewardMission: 2 },
+      { id: "jetpack", name: "Jetpack", emoji: "🚀", slot: "accessory", rewardMission: 3 }
     ];
     const colors = {
       solid: { particle: "#8278d8", glow: "rgba(130, 120, 216, 0.27)", pill: "#8278d8", caption: "Molecules vibrate in fixed positions" },
@@ -59,6 +102,8 @@
     let bassGain = null;
     let particles = [];
     let selectedParticleIndex = 0;
+    let scannedParticles = new Set();
+    let narratorVoiceEnabled = false;
     let width = 0;
     let height = 0;
     let pixelRatio = 1;
@@ -68,8 +113,13 @@
         const rawSave = window.localStorage.getItem(saveKey);
         if (!rawSave) return null;
         const save = JSON.parse(rawSave);
+        if (!save || typeof save !== "object") {
+          saveNote.textContent = "Your saved game could not be read. Start a new game to begin again.";
+          return null;
+        }
         const validCharacter =
           save.character &&
+          typeof save.character === "object" &&
           typeof save.character.name === "string" &&
           save.character.name.trim() &&
           avatarChoices.includes(save.character.avatar) &&
@@ -85,7 +135,38 @@
           saveNote.textContent = "Your saved game could not be read. Start a new game to begin again.";
           return null;
         }
-        return save;
+        const availableItemIds = new Set(wardrobeItems.map(item => item.id));
+        const earnedThroughProgress = wardrobeItems
+          .filter(item => item.rewardMission === 0 || item.rewardMission <= save.missionIndex)
+          .map(item => item.id);
+        const unlockedItems = Array.isArray(save.character.unlockedItems)
+          ? [...new Set(save.character.unlockedItems.filter(id => availableItemIds.has(id)))]
+          : earnedThroughProgress;
+        if (!unlockedItems.includes("mission-suit")) unlockedItems.unshift("mission-suit");
+        const equippedOutfit = wardrobeItems.find(item =>
+          item.id === save.character.equippedOutfit &&
+          item.slot === "outfit" &&
+          unlockedItems.includes(item.id)
+        )?.id || "mission-suit";
+        const equippedAccessory = wardrobeItems.find(item =>
+          item.id === save.character.equippedAccessory &&
+          item.slot === "accessory" &&
+          unlockedItems.includes(item.id)
+        )?.id || "";
+        const validScans = Array.isArray(save.scannedParticles)
+          ? save.scannedParticles.filter(index => Number.isInteger(index) && index >= 0 && index < 46)
+          : [];
+        return {
+          character: {
+            ...save.character,
+            unlockedItems,
+            equippedOutfit,
+            equippedAccessory
+          },
+          missionIndex: save.missionIndex,
+          temperature: save.temperature,
+          scannedParticles: validScans
+        };
       } catch (error) {
         saveNote.textContent = "Saved game access failed. Check your browser storage settings.";
         return null;
@@ -98,7 +179,8 @@
         window.localStorage.setItem(saveKey, JSON.stringify({
           character: currentCharacter,
           missionIndex,
-          temperature
+          temperature,
+          scannedParticles: [...scannedParticles]
         }));
         saveNote.textContent = "Your mission progress is saved on this device.";
         continueButton.disabled = false;
@@ -112,6 +194,55 @@
       playerName.textContent = currentCharacter.name;
       playerAvatar.textContent = currentCharacter.avatar;
       playerSpecialty.textContent = currentCharacter.specialty;
+      explorerAvatar.textContent = currentCharacter.avatar;
+      explorerName.textContent = currentCharacter.name;
+      explorerSpecialty.textContent = currentCharacter.specialty;
+      updateInventory();
+    }
+
+    function updateInventory() {
+      const outfit = wardrobeItems.find(item => item.id === currentCharacter.equippedOutfit);
+      const accessory = wardrobeItems.find(item => item.id === currentCharacter.equippedAccessory);
+      explorerOutfit.textContent = outfit ? outfit.emoji : "";
+      explorerOutfit.setAttribute("aria-label", outfit ? `Wearing ${outfit.name}` : "No outfit equipped");
+      explorerAccessory.textContent = accessory ? accessory.emoji : "";
+      explorerAccessory.setAttribute("aria-label", accessory ? `Wearing ${accessory.name}` : "No accessory equipped");
+      const unlocked = wardrobeItems.filter(item => currentCharacter.unlockedItems.includes(item.id));
+      inventoryCount.textContent = `${unlocked.length} ${unlocked.length === 1 ? "item" : "items"} earned`;
+      inventoryItems.replaceChildren();
+
+      wardrobeItems.forEach(item => {
+        const isUnlocked = currentCharacter.unlockedItems.includes(item.id);
+        const isEquipped = item.slot === "outfit"
+          ? currentCharacter.equippedOutfit === item.id
+          : currentCharacter.equippedAccessory === item.id;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "inventory-item";
+        button.disabled = !isUnlocked;
+        button.dataset.itemId = item.id;
+        button.setAttribute("aria-pressed", String(isEquipped));
+        button.setAttribute("aria-label", isUnlocked
+          ? `${item.name}, ${isEquipped ? "equipped" : "equip"}`
+          : `${item.name}, earned after mission ${item.rewardMission}`);
+        const icon = document.createElement("span");
+        icon.className = "inventory-item-icon";
+        icon.setAttribute("aria-hidden", "true");
+        icon.textContent = isUnlocked ? item.emoji : "🔒";
+        const label = document.createElement("span");
+        label.className = "inventory-item-name";
+        label.textContent = item.name;
+        const status = document.createElement("small");
+        status.textContent = isUnlocked
+          ? isEquipped ? "Equipped" : item.slot
+          : `Mission ${item.rewardMission}`;
+        button.append(icon, label, status);
+        inventoryItems.append(button);
+      });
+
+      inventoryCopy.textContent = unlocked.length === wardrobeItems.length
+        ? "All mission rewards unlocked! Select an item to change what your explorer wears."
+        : "Select an earned item to equip it. Complete missions to unlock more clothes and accessories.";
     }
 
     function showGame() {
@@ -123,9 +254,15 @@
     }
 
     function beginGame(character) {
-      currentCharacter = character;
+      currentCharacter = {
+        ...character,
+        unlockedItems: ["mission-suit"],
+        equippedOutfit: "mission-suit",
+        equippedAccessory: ""
+      };
       missionIndex = 0;
       temperature = 22;
+      scannedParticles = new Set();
       complete = false;
       gameStarted = true;
       coolButton.disabled = false;
@@ -143,6 +280,7 @@
       currentCharacter = save.character;
       missionIndex = save.missionIndex;
       temperature = save.temperature;
+      scannedParticles = new Set(save.scannedParticles);
       complete = missionIndex === missions.length;
       gameStarted = true;
       coolButton.disabled = complete;
@@ -151,7 +289,7 @@
       updateDisplay();
       showGame();
       if (complete) showCompletion();
-      else startMission();
+      else startMission(false);
       if (!musicPreferenceSet) setMusicEnabled(true);
     }
 
@@ -369,7 +507,19 @@
         "aria-label",
         `Molecule ${selectedParticleIndex + 1} of ${particles.length} selected in the ${getState()} sample. Use the arrow keys to select another molecule.`
       );
-      feedback.textContent = `Molecule ${selectedParticleIndex + 1} of ${particles.length} highlighted.`;
+      const wasScanned = scannedParticles.has(selectedParticleIndex);
+      scannedParticles.add(selectedParticleIndex);
+      const scanGoal = getScanGoal();
+      if (scanGoal > 0) {
+        const scanMessage = scannedParticles.size >= scanGoal
+          ? `Molecule ${selectedParticleIndex + 1} scanned. Scan goal complete—lock in your sample!`
+          : `Molecule ${selectedParticleIndex + 1} ${wasScanned ? "already scanned" : "scanned"}. ${scannedParticles.size} of ${scanGoal} unique molecules mapped.`;
+        feedback.textContent = scanMessage;
+        setNarration(scanMessage);
+      } else {
+        feedback.textContent = `Molecule ${selectedParticleIndex + 1} highlighted. Your specialty mission is to calibrate the temperature.`;
+      }
+      saveGame();
     }
 
     function selectParticleAtPointer(event) {
@@ -417,6 +567,51 @@
       else phaseNote.textContent = "At 100°C or hotter, water boils into a gas.";
     }
 
+    function setNarration(message) {
+      narratorSubtitle.textContent = message;
+      if (narratorVoiceEnabled) speakNarration(message);
+    }
+
+    function speakNarration(message) {
+      const speechSynthesis = window.speechSynthesis;
+      const Utterance = window.SpeechSynthesisUtterance;
+      if (!speechSynthesis || !Utterance) {
+        narratorVoiceStatus.textContent = "Narrator voice is unavailable in this browser. Subtitles are still available.";
+        narratorVoiceToggle.disabled = true;
+        narratorVoiceToggle.textContent = "🔊 Narrator voice unavailable";
+        narratorVoiceToggle.setAttribute("aria-pressed", "false");
+        narratorVoiceEnabled = false;
+        return;
+      }
+      speechSynthesis.cancel();
+      const utterance = new Utterance(message);
+      utterance.lang = "en-US";
+      utterance.onerror = event => {
+        narratorVoiceStatus.textContent = `Narrator voice could not play: ${event.error}. Subtitles are still available.`;
+      };
+      speechSynthesis.speak(utterance);
+    }
+
+    function getScanGoal() {
+      if (!currentCharacter || currentCharacter.specialty === "Heat Tracker") return 0;
+      const missionGoal = missions[missionIndex]?.scanGoal || 0;
+      return currentCharacter.specialty === "Matter Mapper"
+        ? Math.max(1, missionGoal - missionIndex)
+        : missionGoal + 1;
+    }
+
+    function getCalibrationTarget(mission) {
+      const temperatureRemainder = ((temperature % 5) + 5) % 5;
+      let closestTarget = null;
+      for (let value = temperatureLimits.min; value <= temperatureLimits.max; value++) {
+        if (((value % 5) + 5) % 5 !== temperatureRemainder || getState(value) !== mission.state) continue;
+        if (closestTarget === null || Math.abs(value - mission.calibratedTemperature) < Math.abs(closestTarget - mission.calibratedTemperature)) {
+          closestTarget = value;
+        }
+      }
+      return closestTarget;
+    }
+
     function setTemperature(amount) {
       if (!gameStarted || complete) return;
       temperature = Math.max(temperatureLimits.min, Math.min(temperatureLimits.max, temperature + amount));
@@ -424,18 +619,28 @@
       saveGame();
     }
 
-    function startMission() {
+    function startMission(resetScans = true) {
       const mission = missions[missionIndex];
+      if (resetScans) scannedParticles = new Set();
       missionCount.textContent = `Mission ${missionIndex + 1} of ${missions.length}`;
       missionTitle.textContent = mission.title;
-      missionCopy.textContent = mission.copy;
+      if (currentCharacter.specialty === "Heat Tracker") {
+        const calibrationTarget = getCalibrationTarget(mission);
+        missionCopy.textContent = `${mission.copy} Heat Tracker calibration: set the sample to exactly ${calibrationTarget}°C.`;
+        setNarration(`${mission.narration} As a Heat Tracker, calibrate the sample to exactly ${calibrationTarget}°C.`);
+      } else {
+        const scanGoal = getScanGoal();
+        missionCopy.textContent = `${mission.copy} ${currentCharacter.specialty} objective: scan ${scanGoal} unique ${scanGoal === 1 ? "molecule" : "molecules"} by clicking them.`;
+        setNarration(`${mission.narration} ${currentCharacter.specialty} objective: click and scan ${scanGoal} unique ${scanGoal === 1 ? "molecule" : "molecules"}, then lock in the sample.`);
+      }
       feedback.textContent = "Tip: hold a temperature button to change it faster.";
       submitButton.disabled = false;
     }
 
     function submitSample() {
       if (!gameStarted || complete) return;
-      const target = missions[missionIndex].state;
+      const mission = missions[missionIndex];
+      const target = mission.state;
       if (getState() !== target) {
         const directions = {
           solid: "Keep cooling until the sample reaches 0°C or colder.",
@@ -443,18 +648,41 @@
           gas: "Keep heating until the sample reaches 100°C or hotter."
         };
         feedback.textContent = `Not quite—your sample is ${getState()}. ${directions[target]}`;
+        setNarration(feedback.textContent);
+        return;
+      }
+      const calibrationTarget = currentCharacter.specialty === "Heat Tracker" ? getCalibrationTarget(mission) : null;
+      if (calibrationTarget !== null && temperature !== calibrationTarget) {
+        feedback.textContent = `Your sample is ${target}, but the Heat Tracker calibration needs exactly ${calibrationTarget}°C.`;
+        setNarration(feedback.textContent);
+        return;
+      }
+      const scanGoal = getScanGoal();
+      if (scannedParticles.size < scanGoal) {
+        const remainingScans = scanGoal - scannedParticles.size;
+        feedback.textContent = `Sample state confirmed. Scan ${remainingScans} more unique ${remainingScans === 1 ? "molecule" : "molecules"} to complete your specialty objective.`;
+        setNarration(feedback.textContent);
         return;
       }
 
+      const reward = wardrobeItems.find(item => item.rewardMission === missionIndex + 1);
+      if (reward && !currentCharacter.unlockedItems.includes(reward.id)) {
+        currentCharacter.unlockedItems.push(reward.id);
+        if (reward.slot === "outfit") currentCharacter.equippedOutfit = reward.id;
+        else currentCharacter.equippedAccessory = reward.id;
+        updateInventory();
+      }
       missionIndex++;
       if (missionIndex === missions.length) {
+        saveGame();
         showCompletion();
         return;
       }
 
-      saveGame();
       startMission();
-      feedback.textContent = `Mission complete! Your sample is ${target}. On to the next challenge!`;
+      feedback.textContent = `Mission complete! Your sample is ${target}. You earned ${reward.name}.`;
+      setNarration(`Mission complete! You earned ${reward.name}. ${narratorSubtitle.textContent}`);
+      saveGame();
     }
 
     function showCompletion() {
@@ -463,6 +691,7 @@
       missionTitle.textContent = "You did it!";
       missionCopy.textContent = "You guided water through solid, liquid, and gas. You’re a molecule master!";
       feedback.textContent = "Great work—now you know how temperature changes matter.";
+      setNarration(`Mission complete, ${currentCharacter.name}! You earned every reward and guided water through solid, liquid, and gas.`);
       submitButton.disabled = true;
       coolButton.disabled = true;
       heatButton.disabled = true;
@@ -561,12 +790,55 @@
       temperature = 22;
       missionIndex = 0;
       complete = false;
+      scannedParticles = new Set();
       coolButton.disabled = false;
       heatButton.disabled = false;
       restartButton.classList.add("hidden");
       updateDisplay();
       startMission();
+      updateInventory();
       saveGame();
+    });
+    inventoryItems.addEventListener("click", event => {
+      const button = event.target.closest("button[data-item-id]");
+      if (!button || button.disabled) return;
+      const item = wardrobeItems.find(candidate => candidate.id === button.dataset.itemId);
+      if (!item) return;
+      if (item.slot === "outfit") currentCharacter.equippedOutfit = item.id;
+      else currentCharacter.equippedAccessory = item.id;
+      updateInventory();
+      saveGame();
+      setNarration(`${item.name} equipped! Your explorer is ready for the mission.`);
+    });
+    if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
+      narratorVoiceToggle.disabled = true;
+      narratorVoiceToggle.textContent = "🔊 Narrator voice unavailable";
+      narratorVoiceStatus.textContent = "Narrator voice is unavailable in this browser. Subtitles are still available.";
+    }
+    narratorVoiceToggle.addEventListener("click", () => {
+      narratorVoiceEnabled = !narratorVoiceEnabled;
+      narratorVoiceToggle.setAttribute("aria-pressed", String(narratorVoiceEnabled));
+      narratorVoiceToggle.textContent = `🔊 Narrator voice: ${narratorVoiceEnabled ? "On" : "Off"}`;
+      if (narratorVoiceEnabled) speakNarration(narratorSubtitle.textContent);
+      else if (window.speechSynthesis) window.speechSynthesis.cancel();
+    });
+    shareQrButton.addEventListener("click", () => {
+      const qrUrl = new URL("https://api.qrserver.com/v1/create-qr-code/");
+      qrUrl.searchParams.set("size", "240x240");
+      qrUrl.searchParams.set("data", window.location.href);
+      qrStatus.textContent = "Creating your QR code…";
+      qrImage.src = qrUrl.toString();
+      qrDialog.showModal();
+    });
+    qrImage.addEventListener("load", () => {
+      qrStatus.textContent = "Your QR code is ready to scan.";
+    });
+    qrImage.addEventListener("error", () => {
+      qrStatus.textContent = "The QR code could not load. Check your connection and try again.";
+    });
+    qrCloseButton.addEventListener("click", () => qrDialog.close());
+    qrDialog.addEventListener("click", event => {
+      if (event.target === qrDialog) qrDialog.close();
     });
     window.addEventListener("resize", resizeCanvas);
     window.addEventListener("keydown", event => {
@@ -579,6 +851,7 @@
         setTemperature(5);
       } else if (
         event.key === "Enter" &&
+        !(event.target instanceof Element && event.target.closest("button")) &&
         document.activeElement !== coolButton &&
         document.activeElement !== heatButton &&
         document.activeElement !== submitButton &&
