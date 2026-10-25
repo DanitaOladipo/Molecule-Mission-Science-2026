@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10182c">
+  <title>Molecule Mission — States of Matter</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="game">
+    <div class="audio-toolbar">
+      <button class="control-button music-toggle" id="musicToggle" type="button" aria-pressed="false">♫ Music: Off</button>
+      <span class="visually-hidden" id="musicStatus" aria-live="polite"></span>
+    </div>
+    <section class="start-menu" id="startMenu" aria-labelledby="menuTitle">
+      <div class="topline">
+        <div class="brand">✦ Molecule Mission</div>
+        <div class="mission-count">States of Matter Adventure</div>
+      </div>
+      <div class="menu-panel panel">
+        <p class="eyebrow">Your science adventure awaits</p>
+        <h1 id="menuTitle">Molecule Mission</h1>
+        <p class="intro">Explore the world of water molecules. Create your scientist or continue your saved mission.</p>
+        <div class="menu-actions">
+          <button class="submit-button" id="newGameButton" type="button">✦ Create New Game</button>
+          <button class="restart-button" id="continueButton" type="button" disabled>▶ Continue Game</button>
+        </div>
+        <p class="save-note" id="saveNote" role="status">Your mission progress is saved on this device.</p>
+      </div>
+    </section>
+
+    <section class="character-creator hidden" id="characterCreator" aria-labelledby="creatorTitle">
+      <div class="topline">
+        <div class="brand">✦ Molecule Mission</div>
+        <div class="mission-count">Create your explorer</div>
+      </div>
+      <div class="creator-panel panel">
+        <p class="eyebrow">Welcome, future scientist</p>
+        <h1 id="creatorTitle">Create your character</h1>
+        <p class="intro">Choose who you’ll be on this mission. Your character will join you as you explore the states of matter.</p>
+        <form id="characterForm">
+          <label class="field-label" for="characterName">Character name</label>
+          <input id="characterName" name="characterName" type="text" maxlength="20" placeholder="Enter a name" autocomplete="nickname" required>
+
+          <fieldset class="choice-group">
+            <legend class="field-label">Choose your explorer</legend>
+            <div class="avatar-options">
+              <label class="avatar-option">
+                <input type="radio" name="avatar" value="🧑‍🔬" checked>
+                <span class="avatar-card"><span class="avatar-icon" aria-hidden="true">🧑‍🔬</span><span>Scientist</span></span>
+              </label>
+              <label class="avatar-option">
+                <input type="radio" name="avatar" value="🤖">
+                <span class="avatar-card"><span class="avatar-icon" aria-hidden="true">🤖</span><span>Robot</span></span>
+              </label>
+              <label class="avatar-option">
+                <input type="radio" name="avatar" value="👽">
+                <span class="avatar-card"><span class="avatar-icon" aria-hidden="true">👽</span><span>Alien</span></span>
+              </label>
+              <label class="avatar-option">
+                <input type="radio" name="avatar" value="🐙">
+                <span class="avatar-card"><span class="avatar-icon" aria-hidden="true">🐙</span><span>Octopus</span></span>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="choice-group">
+            <legend class="field-label">Pick your mission specialty</legend>
+            <div class="specialty-options">
+              <label class="specialty-option">
+                <input type="radio" name="specialty" value="Matter Mapper" checked>
+                <span class="specialty-card"><strong>🔬 Matter Mapper</strong><span>Spot how molecules behave.</span></span>
+              </label>
+              <label class="specialty-option">
+                <input type="radio" name="specialty" value="Heat Tracker">
+                <span class="specialty-card"><strong>🌡️ Heat Tracker</strong><span>Follow every temperature change.</span></span>
+              </label>
+              <label class="specialty-option">
+                <input type="radio" name="specialty" value="Mission Explorer">
+                <span class="specialty-card"><strong>🚀 Mission Explorer</strong><span>Lead the journey through every state.</span></span>
+              </label>
+            </div>
+          </fieldset>
+          <button class="submit-button start-button" type="submit">Start the mission</button>
+        </form>
+        <button class="restart-button menu-return" id="creatorBackButton" type="button">Back to main menu</button>
+      </div>
+    </section>
+
+    <div id="gameScreen" class="hidden">
+    <div class="topline">
+      <div class="brand">✦ Molecule Mission</div>
+      <div class="player-badge" id="playerBadge">
+        <span id="playerAvatar" aria-hidden="true"></span>
+        <span><strong id="playerName"></strong><small id="playerSpecialty"></small></span>
+      </div>
+      <div class="mission-count" id="missionCount">Mission 1 of 3</div>
+    </div>
+    <h1>Change the state.<br>Complete the mission.</h1>
+    <p class="intro">Heat or cool your sample and watch its molecules transform. Can you guide matter through all three states?</p>
+
+    <section class="layout" aria-label="Molecule Mission game">
+      <div class="panel sample-panel">
+        <div class="sample-heading">
+          <span class="eyebrow">Your sample · water</span>
+          <span class="state-pill" id="statePill"><span class="state-dot"></span><span id="stateLabel">Liquid</span></span>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="gameCanvas" role="group" tabindex="0" aria-label="Animated water molecules. Use the arrow keys to select a molecule, then Enter or Space to highlight it."></canvas>
+        </div>
+        <div class="canvas-caption">
+          <span id="particleCaption">Molecules slide past one another</span>
+          <span>Click or tap a molecule · focus here and use arrow keys</span>
+        </div>
+      </div>
+
+      <aside class="panel control-panel" aria-live="polite">
+        <div class="eyebrow mission-label">Current mission</div>
+        <h2 id="missionTitle">Freeze the sample</h2>
+        <p class="mission-copy" id="missionCopy">Cool the water until it becomes a solid. Aim for 0°C or colder.</p>
+
+        <div class="thermometer">
+          <div class="thermometer-heading">
+            <span class="eyebrow">Temperature</span>
+            <span class="temperature"><span id="temperature">22</span><small> °C</small></span>
+          </div>
+          <div class="scale" aria-hidden="true"><span class="scale-marker" id="scaleMarker"></span></div>
+          <div class="scale-labels"><span>−40°C</span><span>0°C</span><span>100°C</span><span>140°C</span></div>
+          <p class="phase-note" id="phaseNote">Water is liquid between 0°C and 100°C.</p>
+        </div>
+
+        <div class="eyebrow control-label">Adjust the temperature</div>
+        <div class="temperature-controls">
+          <button class="control-button" id="coolButton" type="button" aria-label="Cool by 5 degrees">❄ Cool −5°</button>
+          <button class="control-button" id="heatButton" type="button" aria-label="Heat by 5 degrees">☀ Heat +5°</button>
+        </div>
+        <button class="submit-button" id="submitButton" type="button">Lock in this state</button>
+        <p class="feedback" id="feedback" role="status">Tip: hold a temperature button to change it faster.</p>
+        <button class="restart-button hidden" id="restartButton" type="button">Play again</button>
+        <button class="restart-button" id="mainMenuButton" type="button">Main menu</button>
+      </aside>
+    </section>
+
+    <section class="learn" aria-label="States of matter facts">
+      <article class="fact solid"><h3>Solid</h3><p>Molecules vibrate in fixed positions and keep their shape.</p></article>
+      <article class="fact liquid"><h3>Liquid</h3><p>Molecules stay close but slide around; liquids take their container’s shape.</p></article>
+      <article class="fact gas"><h3>Gas</h3><p>Molecules spread out and zip freely to fill their container.</p></article>
+    </section>
+    </div>
+  </main>
+
+  <script src="./script.js" defer></script>
+</body>
+</html>

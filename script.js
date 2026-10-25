@@ -14,6 +14,21 @@
     const restartButton = document.getElementById("restartButton");
     const coolButton = document.getElementById("coolButton");
     const heatButton = document.getElementById("heatButton");
+    const characterCreator = document.getElementById("characterCreator");
+    const characterForm = document.getElementById("characterForm");
+    const characterNameInput = document.getElementById("characterName");
+    const gameScreen = document.getElementById("gameScreen");
+    const playerAvatar = document.getElementById("playerAvatar");
+    const playerName = document.getElementById("playerName");
+    const playerSpecialty = document.getElementById("playerSpecialty");
+    const startMenu = document.getElementById("startMenu");
+    const newGameButton = document.getElementById("newGameButton");
+    const continueButton = document.getElementById("continueButton");
+    const saveNote = document.getElementById("saveNote");
+    const musicToggle = document.getElementById("musicToggle");
+    const musicStatus = document.getElementById("musicStatus");
+    const creatorBackButton = document.getElementById("creatorBackButton");
+    const mainMenuButton = document.getElementById("mainMenuButton");
 
     const missions = [
       { state: "solid", title: "Freeze the sample", copy: "Cool the water until it becomes a solid. Aim for 0°C or colder." },
@@ -26,14 +41,186 @@
       gas: { particle: "#f181ad", glow: "rgba(241, 129, 173, 0.27)", pill: "#f181ad", caption: "Molecules spread out and zip around" }
     };
     const temperatureLimits = { min: -40, max: 140 };
+    const saveKey = "moleculeMissionSave";
+    const avatarChoices = ["🧑‍🔬", "🤖", "👽", "🐙"];
+    const specialtyChoices = ["Matter Mapper", "Heat Tracker", "Mission Explorer"];
     let temperature = 22;
     let missionIndex = 0;
     let complete = false;
+    let gameStarted = false;
+    let currentCharacter = null;
+    let audioContext = null;
+    let musicTimer = null;
+    let musicEnabled = false;
+    let musicPreferenceSet = false;
+    let melodyOscillator = null;
+    let melodyGain = null;
+    let bassOscillator = null;
+    let bassGain = null;
     let particles = [];
     let selectedParticleIndex = 0;
     let width = 0;
     let height = 0;
     let pixelRatio = 1;
+
+    function readSavedGame() {
+      try {
+        const rawSave = window.localStorage.getItem(saveKey);
+        if (!rawSave) return null;
+        const save = JSON.parse(rawSave);
+        const validCharacter =
+          save.character &&
+          typeof save.character.name === "string" &&
+          save.character.name.trim() &&
+          avatarChoices.includes(save.character.avatar) &&
+          specialtyChoices.includes(save.character.specialty);
+        const validProgress =
+          Number.isInteger(save.missionIndex) &&
+          save.missionIndex >= 0 &&
+          save.missionIndex <= missions.length &&
+          Number.isFinite(save.temperature) &&
+          save.temperature >= temperatureLimits.min &&
+          save.temperature <= temperatureLimits.max;
+        if (!validCharacter || !validProgress) {
+          saveNote.textContent = "Your saved game could not be read. Start a new game to begin again.";
+          return null;
+        }
+        return save;
+      } catch (error) {
+        saveNote.textContent = "Saved game access failed. Check your browser storage settings.";
+        return null;
+      }
+    }
+
+    function saveGame() {
+      if (!currentCharacter) return;
+      try {
+        window.localStorage.setItem(saveKey, JSON.stringify({
+          character: currentCharacter,
+          missionIndex,
+          temperature
+        }));
+        saveNote.textContent = "Your mission progress is saved on this device.";
+        continueButton.disabled = false;
+      } catch (error) {
+        saveNote.textContent = "Could not save your game. Check your browser storage settings.";
+        if (gameStarted) feedback.textContent = saveNote.textContent;
+      }
+    }
+
+    function updatePlayerBadge() {
+      playerName.textContent = currentCharacter.name;
+      playerAvatar.textContent = currentCharacter.avatar;
+      playerSpecialty.textContent = currentCharacter.specialty;
+    }
+
+    function showGame() {
+      startMenu.classList.add("hidden");
+      characterCreator.classList.add("hidden");
+      gameScreen.classList.remove("hidden");
+      resizeCanvas();
+      canvas.focus();
+    }
+
+    function beginGame(character) {
+      currentCharacter = character;
+      missionIndex = 0;
+      temperature = 22;
+      complete = false;
+      gameStarted = true;
+      coolButton.disabled = false;
+      heatButton.disabled = false;
+      restartButton.classList.add("hidden");
+      updatePlayerBadge();
+      updateDisplay();
+      startMission();
+      saveGame();
+      showGame();
+      if (!musicPreferenceSet) setMusicEnabled(true);
+    }
+
+    function continueGame(save) {
+      currentCharacter = save.character;
+      missionIndex = save.missionIndex;
+      temperature = save.temperature;
+      complete = missionIndex === missions.length;
+      gameStarted = true;
+      coolButton.disabled = complete;
+      heatButton.disabled = complete;
+      updatePlayerBadge();
+      updateDisplay();
+      showGame();
+      if (complete) showCompletion();
+      else startMission();
+      if (!musicPreferenceSet) setMusicEnabled(true);
+    }
+
+    function setMusicEnabled(enabled) {
+      if (enabled) {
+        try {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) throw new Error("Web Audio is not supported in this browser.");
+          if (!audioContext) {
+            audioContext = new AudioContextClass();
+            melodyOscillator = audioContext.createOscillator();
+            melodyGain = audioContext.createGain();
+            bassOscillator = audioContext.createOscillator();
+            bassGain = audioContext.createGain();
+            melodyOscillator.type = "sine";
+            bassOscillator.type = "sine";
+            melodyGain.gain.value = 0;
+            bassGain.gain.value = 0.008;
+            melodyOscillator.connect(melodyGain);
+            melodyGain.connect(audioContext.destination);
+            bassOscillator.connect(bassGain);
+            bassGain.connect(audioContext.destination);
+            melodyOscillator.start();
+            bassOscillator.start();
+          }
+          audioContext.resume().then(() => {
+            if (!musicEnabled || musicTimer !== null) return;
+            const notes = [392, 440, 523.25, 659.25, 587.33, 523.25, 440, 493.88];
+            let noteIndex = 0;
+            const playNote = () => {
+              const now = audioContext.currentTime;
+              melodyOscillator.frequency.setTargetAtTime(notes[noteIndex % notes.length], now, 0.12);
+              melodyGain.gain.setTargetAtTime(0.018, now, 0.1);
+              if (noteIndex % 4 === 0) {
+                bassOscillator.frequency.setTargetAtTime([130.81, 146.83, 164.81, 146.83][Math.floor(noteIndex / 4) % 4], now, 0.2);
+              }
+              noteIndex++;
+            };
+            playNote();
+            musicTimer = window.setInterval(playNote, 700);
+          }).catch(() => {
+            musicEnabled = false;
+            musicToggle.textContent = "♫ Music unavailable";
+            musicToggle.setAttribute("aria-pressed", "false");
+            musicStatus.textContent = "Background music could not start. Your browser blocked audio playback.";
+          });
+          musicEnabled = true;
+          musicToggle.textContent = "♫ Music: On";
+          musicToggle.setAttribute("aria-pressed", "true");
+          musicStatus.textContent = "Background music on.";
+        } catch (error) {
+          musicEnabled = false;
+          musicToggle.textContent = "♫ Music unavailable";
+          musicToggle.setAttribute("aria-pressed", "false");
+          musicStatus.textContent = error.message;
+        }
+        return;
+      }
+
+      musicEnabled = false;
+      if (musicTimer !== null) {
+        window.clearInterval(musicTimer);
+        musicTimer = null;
+      }
+      if (audioContext) audioContext.suspend();
+      musicToggle.textContent = "♫ Music: Off";
+      musicToggle.setAttribute("aria-pressed", "false");
+      musicStatus.textContent = "Background music off.";
+    }
 
     function getState(value = temperature) {
       if (value <= 0) return "solid";
@@ -231,9 +418,10 @@
     }
 
     function setTemperature(amount) {
-      if (complete) return;
+      if (!gameStarted || complete) return;
       temperature = Math.max(temperatureLimits.min, Math.min(temperatureLimits.max, temperature + amount));
       updateDisplay();
+      saveGame();
     }
 
     function startMission() {
@@ -246,7 +434,7 @@
     }
 
     function submitSample() {
-      if (complete) return;
+      if (!gameStarted || complete) return;
       const target = missions[missionIndex].state;
       if (getState() !== target) {
         const directions = {
@@ -260,20 +448,26 @@
 
       missionIndex++;
       if (missionIndex === missions.length) {
-        complete = true;
-        missionCount.textContent = "Mission complete!";
-        missionTitle.textContent = "You did it!";
-        missionCopy.textContent = "You guided water through solid, liquid, and gas. You’re a molecule master!";
-        feedback.textContent = "Great work—now you know how temperature changes matter.";
-        submitButton.disabled = true;
-        coolButton.disabled = true;
-        heatButton.disabled = true;
-        restartButton.classList.remove("hidden");
+        showCompletion();
         return;
       }
 
+      saveGame();
       startMission();
       feedback.textContent = `Mission complete! Your sample is ${target}. On to the next challenge!`;
+    }
+
+    function showCompletion() {
+      complete = true;
+      missionCount.textContent = "Mission complete!";
+      missionTitle.textContent = "You did it!";
+      missionCopy.textContent = "You guided water through solid, liquid, and gas. You’re a molecule master!";
+      feedback.textContent = "Great work—now you know how temperature changes matter.";
+      submitButton.disabled = true;
+      coolButton.disabled = true;
+      heatButton.disabled = true;
+      restartButton.classList.remove("hidden");
+      saveGame();
     }
 
     function bindTemperatureButton(button, amount) {
@@ -319,6 +513,50 @@
       }
     });
     submitButton.addEventListener("click", submitSample);
+    musicToggle.addEventListener("click", () => {
+      musicPreferenceSet = true;
+      setMusicEnabled(!musicEnabled);
+    });
+    newGameButton.addEventListener("click", () => {
+      startMenu.classList.add("hidden");
+      characterCreator.classList.remove("hidden");
+      characterForm.reset();
+      characterNameInput.focus();
+    });
+    continueButton.addEventListener("click", () => {
+      const save = readSavedGame();
+      if (save) continueGame(save);
+      else {
+        continueButton.disabled = true;
+        startMenu.classList.remove("hidden");
+      }
+    });
+    creatorBackButton.addEventListener("click", () => {
+      characterCreator.classList.add("hidden");
+      startMenu.classList.remove("hidden");
+      newGameButton.focus();
+    });
+    mainMenuButton.addEventListener("click", () => {
+      gameStarted = false;
+      gameScreen.classList.add("hidden");
+      startMenu.classList.remove("hidden");
+      continueButton.disabled = !readSavedGame();
+      newGameButton.focus();
+    });
+    characterNameInput.addEventListener("input", () => characterNameInput.setCustomValidity(""));
+    characterForm.addEventListener("submit", event => {
+      event.preventDefault();
+      const name = characterNameInput.value.trim();
+      characterNameInput.setCustomValidity(name ? "" : "Enter a character name to start.");
+      if (!characterForm.reportValidity()) return;
+
+      const characterData = new FormData(characterForm);
+      beginGame({
+        name,
+        avatar: String(characterData.get("avatar")),
+        specialty: String(characterData.get("specialty"))
+      });
+    });
     restartButton.addEventListener("click", () => {
       temperature = 22;
       missionIndex = 0;
@@ -328,9 +566,11 @@
       restartButton.classList.add("hidden");
       updateDisplay();
       startMission();
+      saveGame();
     });
     window.addEventListener("resize", resizeCanvas);
     window.addEventListener("keydown", event => {
+      if (!gameStarted) return;
       if (event.key === "ArrowDown" || event.key.toLowerCase() === "c") {
         event.preventDefault();
         setTemperature(-5);
@@ -341,14 +581,17 @@
         event.key === "Enter" &&
         document.activeElement !== coolButton &&
         document.activeElement !== heatButton &&
-        document.activeElement !== submitButton
+        document.activeElement !== submitButton &&
+        document.activeElement !== restartButton &&
+        document.activeElement !== mainMenuButton &&
+        document.activeElement !== musicToggle
       ) {
         submitSample();
       }
     });
 
     makeParticles();
-    resizeCanvas();
+    const savedGame = readSavedGame();
+    continueButton.disabled = !savedGame;
     updateDisplay();
-    startMission();
     requestAnimationFrame(animate);

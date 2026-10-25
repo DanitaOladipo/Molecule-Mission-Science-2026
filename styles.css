@@ -408,3 +408,192 @@ canvas:focus-visible {
 .fact.solid h3 { color: #6d79c7; }
 .fact.liquid h3 { color: #318f83; }
 .fact.gas h3 { color: #ca6e91; }
+
+.creator-panel {
+  width: min(100%, 720px);
+  margin: 30px auto 0;
+  padding: clamp(22px, 5vw, 42px);
+}
+
+.creator-panel h1 {
+  margin-top: 8px;
+  font-size: clamp(2rem, 5vw, 3rem);
+}
+
+.creator-panel .intro { margin-bottom: 25px; }
+
+.field-label {
+  display: block;
+  margin-bottom: 9px;
+  color: #59447d;
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+#characterName {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: #403458;
+  background: #fff;
+  font: inherit;
+}
+
+#characterName:focus-visible {
+  outline: 3px solid rgba(178, 102, 196, 0.55);
+  outline-offset: 2px;
+}
+
+.choice-group {
+  min-width: 0;
+  margin: 24px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.avatar-options, .specialty-options {
+  display: grid;
+  gap: 10px;
+}
+
+.avatar-options { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.specialty-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.avatar-option, .specialty-option {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+
+.avatar-option input, .specialty-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.avatar-card, .specialty-card {
+  display: flex;
+  min-height: 86px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  color: #66577e;
+  background: linear-gradient(145deg, #faf7ff, #f5fffc);
+  text-align: center;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.avatar-icon { font-size: 1.8rem; }
+.avatar-card > span:last-child { font-size: 0.82rem; font-weight: 700; }
+
+.specialty-card {
+  min-height: 102px;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.specialty-card strong { color: #59447d; font-size: 0.86rem; }
+.specialty-card > span { color: var(--muted); font-size: 0.76rem; line-height: 1.4; }
+
+.avatar-option input:checked + .avatar-card,
+.specialty-option input:checked + .specialty-card {
+  border-color: #bd78c6;
+  background: linear-gradient(145deg, #f2e8ff, #eafaf5);
+  box-shadow: 0 0 0 2px rgba(189, 120, 198, 0.14);
+}
+
+.avatar-option input:focus-visible + .avatar-card,
+.specialty-option input:focus-visible + .specialty-card {
+  outline: 3px solid rgba(178, 102, 196, 0.65);
+  outline-offset: 2px;
+}
+
+.avatar-option:hover .avatar-card,
+.specialty-option:hover .specialty-card { transform: translateY(-2px); }
+
+.start-button { margin-top: 26px; }
+
+.player-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.player-badge > span:first-child { font-size: 1.35rem; }
+.player-badge strong, .player-badge small { display: block; }
+.player-badge strong { color: #59447d; font-size: 0.8rem; }
+.player-badge small { color: var(--muted); font-size: 0.68rem; }
+
+.audio-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.music-toggle { min-height: 40px; padding: 0 14px; }
+.music-toggle[aria-pressed="true"] { border-color: #bd78c6; }
+
+.menu-panel {
+  width: min(100%, 720px);
+  margin: 50px auto 0;
+  padding: clamp(26px, 6vw, 52px);
+  text-align: center;
+}
+
+.menu-panel h1 {
+  margin-top: 12px;
+  font-size: clamp(2.4rem, 7vw, 4rem);
+}
+
+.menu-panel .intro { margin: 16px auto 30px; }
+
+.menu-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.menu-actions .submit-button, .menu-actions .restart-button {
+  min-height: 56px;
+  margin: 0;
+}
+
+.menu-actions .restart-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.save-note { min-height: 1.3em; margin: 18px 0 0; color: var(--muted); font-size: 0.82rem; }
+.menu-return { width: 100%; margin-top: 12px; }
+
+@media (max-width: 560px) {
+  .avatar-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .specialty-options { grid-template-columns: 1fr; }
+  .specialty-card { min-height: 76px; }
+  .player-badge { order: 3; }
+  .menu-actions { grid-template-columns: 1fr; }
+  .menu-panel { margin-top: 20px; }
+}
