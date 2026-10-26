@@ -218,6 +218,7 @@
     let challengeTemperatureValue = 22;
     let selectedMatchCard = null;
     let pendingMismatchCards = [];
+    let mismatchTimeout = null;
     let matchedPairCount = 0;
     let width = 0;
     let height = 0;
@@ -902,26 +903,27 @@
 
     function showMiniGame(mode) {
       activeMiniGame = mode;
+      miniGameScreen.querySelector(".mini-game-panel").dataset.game = mode;
       startMenu.classList.add("hidden");
       characterCreator.classList.add("hidden");
       gameScreen.classList.add("hidden");
       miniGameScreen.classList.remove("hidden");
       if (mode === "quiz") {
-        miniGameTitle.textContent = "Matter Quiz";
+        miniGameTitle.textContent = "Rapid-Fire Matter Quiz";
         quizGame.classList.remove("hidden");
         temperatureGame.classList.add("hidden");
         matchingGame.classList.add("hidden");
         startQuiz();
         quizOptions.querySelector("button")?.focus();
       } else if (mode === "temperature") {
-        miniGameTitle.textContent = "Temperature Challenge";
+        miniGameTitle.textContent = "Thermal Target Sprint";
         quizGame.classList.add("hidden");
         temperatureGame.classList.remove("hidden");
         matchingGame.classList.add("hidden");
         startTemperatureChallenge();
         challengeCoolButton.focus();
       } else {
-        miniGameTitle.textContent = "Molecule Match";
+        miniGameTitle.textContent = "Molecule Memory Match";
         quizGame.classList.add("hidden");
         temperatureGame.classList.add("hidden");
         matchingGame.classList.remove("hidden");
@@ -1078,6 +1080,10 @@
     }
 
     function startMoleculeMatch() {
+      if (mismatchTimeout !== null) {
+        window.clearTimeout(mismatchTimeout);
+        mismatchTimeout = null;
+      }
       selectedMatchCard = null;
       pendingMismatchCards = [];
       matchedPairCount = 0;
@@ -1102,15 +1108,7 @@
     }
 
     function revealMatchCard(button, card) {
-      if (button.disabled || selectedMatchCard === button) return;
-      if (pendingMismatchCards.length) {
-        pendingMismatchCards.forEach(mismatchedCard => {
-          mismatchedCard.button.classList.remove("is-revealed");
-          mismatchedCard.button.textContent = "?";
-          mismatchedCard.button.setAttribute("aria-label", "Hidden card");
-        });
-        pendingMismatchCards = [];
-      }
+      if (button.disabled || selectedMatchCard === button || pendingMismatchCards.length) return;
 
       button.classList.add("is-revealed");
       button.textContent = card.text;
@@ -1138,6 +1136,16 @@
           { button }
         ];
         matchingFeedback.textContent = "Not a pair yet. Choose another card to try again.";
+        mismatchTimeout = window.setTimeout(() => {
+          pendingMismatchCards.forEach(mismatchedCard => {
+            mismatchedCard.button.classList.remove("is-revealed");
+            mismatchedCard.button.textContent = "?";
+            mismatchedCard.button.setAttribute("aria-label", "Hidden card");
+          });
+          pendingMismatchCards = [];
+          mismatchTimeout = null;
+          matchingFeedback.textContent = "Choose two cards to find a matching pair.";
+        }, 900);
       }
       selectedMatchCard = null;
     }
@@ -1148,7 +1156,12 @@
       miniGameScreen.classList.add("hidden");
       startMenu.classList.remove("hidden");
       continueButton.disabled = !readSavedGame();
-      (previousMiniGame === "quiz" ? quizModeButton : temperatureModeButton).focus();
+      const modeButtons = {
+        quiz: quizModeButton,
+        temperature: temperatureModeButton,
+        matching: matchingModeButton
+      };
+      modeButtons[previousMiniGame]?.focus();
     }
 
     function beginGame(character) {

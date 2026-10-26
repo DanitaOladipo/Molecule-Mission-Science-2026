@@ -21,7 +21,7 @@
         <h2 id="qrTitle">Scan to choose a science game</h2>
         <img class="qr-image" id="qrImage" alt="QR code for the Molecule Mission game choices">
         <p class="qr-status" id="qrStatus" role="status" aria-live="polite"></p>
-        <p class="qr-note">Scan with a phone camera to open the game choices. One QR code opens the lab adventure, Matter Quiz, Temperature Challenge, and Molecule Match. The QR image service receives this page address to create the code.</p>
+        <p class="qr-note">Scan with a phone camera to open the game choices. One QR code opens the lab adventure, Rapid-Fire Matter Quiz, Thermal Target Sprint, and Molecule Memory Match. The QR image service receives this page address to create the code.</p>
       </div>
     </dialog>
     <section class="start-menu" id="startMenu" aria-labelledby="menuTitle">
@@ -39,23 +39,23 @@
         </div>
         <p class="save-note" id="saveNote" role="status">Your mission progress is saved on this device.</p>
         <div class="mode-grid" aria-label="More science games">
-          <button class="mode-card" id="quizModeButton" type="button">
+          <button class="mode-card mode-card--quiz" id="quizModeButton" type="button">
             <span class="mode-icon" aria-hidden="true">🧠</span>
-            <strong>Matter Quiz</strong>
-            <span>Answer questions about states of matter and molecules.</span>
-            <span class="mode-play">Play quiz →</span>
+            <strong>Rapid-Fire Matter Quiz</strong>
+            <span>Race through five multiple-choice questions and build your score.</span>
+            <span class="mode-play">Start trivia round →</span>
           </button>
-          <button class="mode-card" id="temperatureModeButton" type="button">
+          <button class="mode-card mode-card--temperature" id="temperatureModeButton" type="button">
             <span class="mode-icon" aria-hidden="true">🌡️</span>
-            <strong>Temperature Challenge</strong>
-            <span>Heat or cool water to match each target state.</span>
-            <span class="mode-play">Start challenge →</span>
+            <strong>Thermal Target Sprint</strong>
+            <span>Dial the thermometer up or down to hit five changing state targets.</span>
+            <span class="mode-play">Start temperature race →</span>
           </button>
-          <button class="mode-card" id="matchingModeButton" type="button">
+          <button class="mode-card mode-card--matching" id="matchingModeButton" type="button">
             <span class="mode-icon" aria-hidden="true">🧩</span>
-            <strong>Molecule Match</strong>
-            <span>Pair each state of matter with how its molecules move.</span>
-            <span class="mode-play">Play matching game →</span>
+            <strong>Molecule Memory Match</strong>
+            <span>Flip hidden cards and pair each state with its molecule behavior.</span>
+            <span class="mode-play">Flip the first card →</span>
           </button>
         </div>
       </div>

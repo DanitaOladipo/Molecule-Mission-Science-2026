@@ -614,6 +614,21 @@ canvas:focus-visible {
   transition: border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
 }
 
+.mode-card--quiz {
+  border-color: rgba(136, 91, 207, 0.3);
+  background: radial-gradient(ellipse at 50% 0%, rgba(183, 142, 255, 0.27), transparent 70%), linear-gradient(145deg, #f8f2ff, #f0f7ff);
+}
+
+.mode-card--temperature {
+  border-color: rgba(225, 133, 72, 0.32);
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 190, 105, 0.3), transparent 70%), linear-gradient(145deg, #fff7eb, #fff0ef);
+}
+
+.mode-card--matching {
+  border-color: rgba(49, 166, 149, 0.32);
+  background: radial-gradient(ellipse at 50% 0%, rgba(105, 223, 195, 0.28), transparent 70%), linear-gradient(145deg, #effff9, #eef7ff);
+}
+
 .mode-card:hover {
   border-color: rgba(143, 100, 191, 0.55);
   box-shadow: 0 8px 20px rgba(114, 82, 157, 0.1);
@@ -631,9 +646,20 @@ canvas:focus-visible {
 .mode-card .mode-play { color: #8355ad; font-size: 0.82rem; font-weight: 750; }
 
 .mini-game-panel {
+  --mini-accent: #9364d4;
   width: min(100%, 720px);
   margin: 30px auto 0;
   padding: clamp(24px, 5vw, 42px);
+  border-color: color-mix(in srgb, var(--mini-accent) 32%, white);
+  background: radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--mini-accent) 16%, transparent), transparent 48%), rgba(255, 255, 255, 0.94);
+}
+
+.mini-game-panel[data-game="temperature"] { --mini-accent: #df8049; }
+.mini-game-panel[data-game="matching"] { --mini-accent: #36a895; }
+
+.mini-game-panel .eyebrow,
+.mini-game-panel .mini-game-progress {
+  color: var(--mini-accent);
 }
 
 .mini-game-panel h1 {
@@ -675,7 +701,7 @@ canvas:focus-visible {
   border: 1px solid rgba(139, 113, 190, 0.26);
   border-radius: 13px;
   color: #66577e;
-  background: linear-gradient(145deg, #f1eaff, #e9fbf8);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--mini-accent) 18%, white), #fff);
   cursor: pointer;
   font: inherit;
   font-weight: 750;
@@ -706,7 +732,7 @@ canvas:focus-visible {
   border: 1px solid var(--line);
   border-radius: 14px;
   color: #59447d;
-  background: linear-gradient(135deg, #f2efff, #e9fbf8);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--mini-accent) 14%, white), #fff7ef);
   font-size: 2.4rem;
   font-variant-numeric: tabular-nums;
   font-weight: 850;

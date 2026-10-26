@@ -2,10 +2,10 @@
 
 A browser-based science game about the states of matter.
 
-The main menu offers three different games from the same page and QR code:
-the 3D Lab Adventure, a Matter Quiz, a Temperature Challenge, and Molecule
-Match. The mini-games are quick to play; the lab adventure saves its progress
-on the device.
+The main menu offers four different games from the same page and QR code:
+the 3D Lab Adventure, Rapid-Fire Matter Quiz, Thermal Target Sprint, and
+Molecule Memory Match. The mini-games are quick to play; the lab adventure
+saves its progress on the device.
 
 Build a human explorer with a chosen skin tone, hairstyle, and suit color. Walk
 around the interactive lab with the arrow keys or on-screen controls, talk to
