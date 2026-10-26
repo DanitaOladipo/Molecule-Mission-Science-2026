@@ -42,3 +42,6 @@ To publish the site:
 
 Anyone with the Pages URL can visit the game. The QR-code feature sends that URL
 to an external QR image service to generate the code.
+
+The QR code points to the site, not to an individual game. After deploying
+changes, the same QR code opens the updated game menu at the same address.
