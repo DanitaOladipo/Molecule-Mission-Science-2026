@@ -2,13 +2,18 @@
 
 A browser-based science game about the states of matter.
 
+The main menu offers three different games from the same page and QR code:
+the 3D Lab Adventure, a Matter Quiz, a Temperature Challenge, and Molecule
+Match. The mini-games are quick to play; the lab adventure saves its progress
+on the device.
+
 Build a human explorer with a chosen skin tone, hairstyle, and suit color. Walk
 around the interactive lab with the arrow keys or on-screen controls, talk to
 Nova, scan molecules, and earn wearable mission clothes. The explorer and
 narrator are animated 3D characters, and character creation includes a live 3D
 preview. Missions track temperature, molecule scans, and sample confirmation as
 you work. The narrator offers subtitles and an optional, more natural-paced
-browser voice. The existing game QR code shares the same page with other players.
+browser voice.
 
 The explorer and narrator are real, animated 3D characters rendered with
 WebGL, with idle, walking, and waving animations. The game loads a pinned Three.js

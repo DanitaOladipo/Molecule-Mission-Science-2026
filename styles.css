@@ -589,6 +589,137 @@ canvas:focus-visible {
 .save-note { min-height: 1.3em; margin: 18px 0 0; color: var(--muted); font-size: 0.82rem; }
 .menu-return { width: 100%; margin-top: 12px; }
 
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.mode-card {
+  display: flex;
+  min-height: 190px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 18px;
+  border: 1px solid rgba(139, 113, 190, 0.26);
+  border-radius: 15px;
+  color: #66577e;
+  background: linear-gradient(145deg, #faf7ff, #f1fffb);
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+  transition: border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+.mode-card:hover {
+  border-color: rgba(143, 100, 191, 0.55);
+  box-shadow: 0 8px 20px rgba(114, 82, 157, 0.1);
+  transform: translateY(-2px);
+}
+
+.mode-card:focus-visible {
+  outline: 3px solid rgba(178, 102, 196, 0.65);
+  outline-offset: 2px;
+}
+
+.mode-icon { font-size: 2rem; }
+.mode-card strong { color: #59447d; font-size: 1rem; }
+.mode-card > span:not(.mode-icon) { font-size: 0.82rem; line-height: 1.45; }
+.mode-card .mode-play { color: #8355ad; font-size: 0.82rem; font-weight: 750; }
+
+.mini-game-panel {
+  width: min(100%, 720px);
+  margin: 30px auto 0;
+  padding: clamp(24px, 5vw, 42px);
+}
+
+.mini-game-panel h1 {
+  margin: 8px 0 24px;
+  font-size: clamp(2rem, 5vw, 3rem);
+}
+
+.mini-game-content h2 {
+  min-height: 2.8em;
+  margin: 8px 0 18px;
+  color: #59447d;
+  font-size: clamp(1.2rem, 3vw, 1.55rem);
+  line-height: 1.35;
+}
+
+.mini-game-progress {
+  margin: 0;
+  color: #8355ad;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.quiz-options { display: grid; gap: 10px; }
+.quiz-option { min-height: 48px; text-align: left; }
+.quiz-option.is-correct { border-color: #51a98d; background: #e7f8ef; }
+.quiz-option.is-incorrect { border-color: #cf758b; background: #fff0f2; }
+
+.matching-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.matching-card {
+  display: grid;
+  min-height: 92px;
+  place-items: center;
+  padding: 12px;
+  border: 1px solid rgba(139, 113, 190, 0.26);
+  border-radius: 13px;
+  color: #66577e;
+  background: linear-gradient(145deg, #f1eaff, #e9fbf8);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+  text-align: center;
+}
+
+.matching-card.is-revealed { color: #59447d; background: #fff; }
+.matching-card.is-matched { border-color: #51a98d; color: #287c68; background: #e7f8ef; }
+.matching-card:focus-visible { outline: 3px solid rgba(178, 102, 196, 0.65); outline-offset: 2px; }
+.matching-card:disabled { cursor: default; }
+
+.mini-game-feedback {
+  min-height: 3em;
+  margin: 16px 0;
+  color: #59447d;
+  line-height: 1.5;
+}
+
+.mini-game-content > .submit-button { width: 100%; }
+
+.challenge-temperature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 18px 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: #59447d;
+  background: linear-gradient(135deg, #f2efff, #e9fbf8);
+  font-size: 2.4rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 850;
+}
+
+.challenge-temperature small {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.mini-game-content .temperature-controls { margin-top: 12px; }
+
 @media (max-width: 560px) {
   .avatar-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .specialty-options { grid-template-columns: 1fr; }
@@ -596,6 +727,10 @@ canvas:focus-visible {
   .player-badge { order: 3; }
   .menu-actions { grid-template-columns: 1fr; }
   .menu-panel { margin-top: 20px; }
+  .mode-grid { grid-template-columns: 1fr; }
+  .mode-card { min-height: 150px; }
+  .mini-game-panel { margin-top: 20px; }
+  .matching-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .audio-toolbar { gap: 9px; }

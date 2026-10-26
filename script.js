@@ -25,6 +25,31 @@
     const startMenu = document.getElementById("startMenu");
     const newGameButton = document.getElementById("newGameButton");
     const continueButton = document.getElementById("continueButton");
+    const quizModeButton = document.getElementById("quizModeButton");
+    const temperatureModeButton = document.getElementById("temperatureModeButton");
+    const matchingModeButton = document.getElementById("matchingModeButton");
+    const miniGameScreen = document.getElementById("miniGameScreen");
+    const miniGameTitle = document.getElementById("miniGameTitle");
+    const quizGame = document.getElementById("quizGame");
+    const quizProgress = document.getElementById("quizProgress");
+    const quizPrompt = document.getElementById("quizPrompt");
+    const quizOptions = document.getElementById("quizOptions");
+    const quizFeedback = document.getElementById("quizFeedback");
+    const quizNextButton = document.getElementById("quizNextButton");
+    const temperatureGame = document.getElementById("temperatureGame");
+    const temperatureChallengeProgress = document.getElementById("temperatureChallengeProgress");
+    const temperatureChallengePrompt = document.getElementById("temperatureChallengePrompt");
+    const challengeTemperature = document.getElementById("challengeTemperature");
+    const challengeState = document.getElementById("challengeState");
+    const challengeCoolButton = document.getElementById("challengeCoolButton");
+    const challengeHeatButton = document.getElementById("challengeHeatButton");
+    const temperatureChallengeFeedback = document.getElementById("temperatureChallengeFeedback");
+    const checkTemperatureButton = document.getElementById("checkTemperatureButton");
+    const matchingGame = document.getElementById("matchingGame");
+    const matchingProgress = document.getElementById("matchingProgress");
+    const matchingCards = document.getElementById("matchingCards");
+    const matchingFeedback = document.getElementById("matchingFeedback");
+    const miniGameMenuButton = document.getElementById("miniGameMenuButton");
     const saveNote = document.getElementById("saveNote");
     const musicToggle = document.getElementById("musicToggle");
     const musicStatus = document.getElementById("musicStatus");
@@ -88,6 +113,44 @@
         calibratedTemperature: 100
       }
     ];
+    const quizQuestions = [
+      {
+        question: "What happens to water molecules when liquid water freezes?",
+        answers: ["They vibrate in fixed positions", "They disappear", "They spread out to fill the room"],
+        correct: 0
+      },
+      {
+        question: "Which state of matter spreads out to fill its container?",
+        answers: ["Solid", "Liquid", "Gas"],
+        correct: 2
+      },
+      {
+        question: "How do molecules move in liquid water?",
+        answers: ["They stay in fixed positions", "They slide past one another", "They stop moving"],
+        correct: 1
+      },
+      {
+        question: "At what temperature does water freeze?",
+        answers: ["0°C", "50°C", "100°C"],
+        correct: 0
+      },
+      {
+        question: "What happens to water at 100°C at normal air pressure?",
+        answers: ["It freezes into a solid", "It changes into a gas", "It becomes colder"],
+        correct: 1
+      },
+      {
+        question: "Which state keeps its own shape?",
+        answers: ["Solid", "Liquid", "Gas"],
+        correct: 0
+      }
+    ];
+    const moleculePairs = [
+      { id: "solid", state: "Solid", behavior: "Vibrate in fixed positions" },
+      { id: "liquid", state: "Liquid", behavior: "Slide past one another" },
+      { id: "gas", state: "Gas", behavior: "Spread out and move freely" }
+    ];
+    const miniGameRoundCount = 5;
     const wardrobeItems = [
       { id: "mission-suit", name: "Mission suit", emoji: "🧥", slot: "outfit", rewardMission: 0 },
       { id: "safety-goggles", name: "Safety goggles", emoji: "🥽", slot: "accessory", rewardMission: 1 },
@@ -144,6 +207,18 @@
     let selectedParticleIndex = 0;
     let scannedParticles = new Set();
     let narratorVoiceEnabled = false;
+    let activeMiniGame = null;
+    let quizRound = [];
+    let quizQuestionIndex = 0;
+    let quizScore = 0;
+    let quizAnswered = false;
+    let quizFinished = false;
+    let temperatureChallengeTargets = [];
+    let temperatureChallengeRound = 0;
+    let challengeTemperatureValue = 22;
+    let selectedMatchCard = null;
+    let pendingMismatchCards = [];
+    let matchedPairCount = 0;
     let width = 0;
     let height = 0;
     let pixelRatio = 1;
@@ -809,10 +884,271 @@
     function showGame() {
       startMenu.classList.add("hidden");
       characterCreator.classList.add("hidden");
+      miniGameScreen.classList.add("hidden");
       gameScreen.classList.remove("hidden");
       resizeCanvas();
       resize3dLab();
       labWorld.focus();
+    }
+
+    function shuffled(items) {
+      const result = [...items];
+      for (let index = result.length - 1; index > 0; index--) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+      }
+      return result;
+    }
+
+    function showMiniGame(mode) {
+      activeMiniGame = mode;
+      startMenu.classList.add("hidden");
+      characterCreator.classList.add("hidden");
+      gameScreen.classList.add("hidden");
+      miniGameScreen.classList.remove("hidden");
+      if (mode === "quiz") {
+        miniGameTitle.textContent = "Matter Quiz";
+        quizGame.classList.remove("hidden");
+        temperatureGame.classList.add("hidden");
+        matchingGame.classList.add("hidden");
+        startQuiz();
+        quizOptions.querySelector("button")?.focus();
+      } else if (mode === "temperature") {
+        miniGameTitle.textContent = "Temperature Challenge";
+        quizGame.classList.add("hidden");
+        temperatureGame.classList.remove("hidden");
+        matchingGame.classList.add("hidden");
+        startTemperatureChallenge();
+        challengeCoolButton.focus();
+      } else {
+        miniGameTitle.textContent = "Molecule Match";
+        quizGame.classList.add("hidden");
+        temperatureGame.classList.add("hidden");
+        matchingGame.classList.remove("hidden");
+        startMoleculeMatch();
+        matchingCards.querySelector("button")?.focus();
+      }
+    }
+
+    function startQuiz() {
+      quizRound = shuffled(quizQuestions).slice(0, miniGameRoundCount);
+      quizQuestionIndex = 0;
+      quizScore = 0;
+      quizFinished = false;
+      renderQuizQuestion();
+    }
+
+    function renderQuizQuestion() {
+      quizAnswered = false;
+      const currentQuestion = quizRound[quizQuestionIndex];
+      quizProgress.textContent = `Question ${quizQuestionIndex + 1} of ${quizRound.length} · Score ${quizScore}`;
+      quizPrompt.textContent = currentQuestion.question;
+      quizFeedback.textContent = "Choose an answer.";
+      quizOptions.replaceChildren();
+      quizOptions.classList.remove("hidden");
+      currentQuestion.answers.forEach((answer, answerIndex) => {
+        const button = document.createElement("button");
+        button.className = "control-button quiz-option";
+        button.type = "button";
+        button.textContent = answer;
+        button.addEventListener("click", () => answerQuizQuestion(button, answerIndex));
+        quizOptions.append(button);
+      });
+      quizNextButton.textContent = "Next question";
+      quizNextButton.disabled = true;
+      quizNextButton.classList.remove("hidden");
+    }
+
+    function answerQuizQuestion(selectedButton, answerIndex) {
+      if (quizAnswered) return;
+      quizAnswered = true;
+      const currentQuestion = quizRound[quizQuestionIndex];
+      const isCorrect = answerIndex === currentQuestion.correct;
+      if (isCorrect) quizScore++;
+      quizOptions.querySelectorAll("button").forEach((button, index) => {
+        button.disabled = true;
+        if (index === currentQuestion.correct) button.classList.add("is-correct");
+      });
+      if (!isCorrect) selectedButton.classList.add("is-incorrect");
+      quizFeedback.textContent = isCorrect
+        ? "That’s right! Great science thinking."
+        : `Not quite. The correct answer is “${currentQuestion.answers[currentQuestion.correct]}.”`;
+      quizProgress.textContent = `Question ${quizQuestionIndex + 1} of ${quizRound.length} · Score ${quizScore}`;
+      quizNextButton.textContent = quizQuestionIndex === quizRound.length - 1 ? "See results" : "Next question";
+      quizNextButton.disabled = false;
+    }
+
+    function advanceQuiz() {
+      if (quizFinished) {
+        startQuiz();
+        quizOptions.querySelector("button")?.focus();
+        return;
+      }
+      if (!quizAnswered) return;
+      if (quizQuestionIndex === quizRound.length - 1) {
+        quizFinished = true;
+        quizProgress.textContent = "Quiz complete!";
+        quizPrompt.textContent = `You scored ${quizScore} out of ${quizRound.length}.`;
+        quizFeedback.textContent = quizScore === quizRound.length
+          ? "Perfect score! You’re a matter expert."
+          : "Nice work! Play again to try a different set of questions.";
+        quizOptions.replaceChildren();
+        quizOptions.classList.add("hidden");
+        quizNextButton.textContent = "Play again";
+        return;
+      }
+      quizQuestionIndex++;
+      renderQuizQuestion();
+    }
+
+    function startTemperatureChallenge() {
+      const states = ["solid", "liquid", "gas"];
+      temperatureChallengeTargets = [];
+      for (let round = 0; round < miniGameRoundCount; round++) {
+        const availableStates = states.filter(state => state !== temperatureChallengeTargets.at(-1));
+        temperatureChallengeTargets.push(availableStates[Math.floor(Math.random() * availableStates.length)]);
+      }
+      temperatureChallengeRound = 0;
+      challengeTemperatureValue = 22;
+      renderTemperatureChallenge();
+    }
+
+    function renderTemperatureChallenge() {
+      const target = temperatureChallengeTargets[temperatureChallengeRound];
+      checkTemperatureButton.dataset.passed = "false";
+      temperatureChallengePrompt.textContent = `Heat or cool the water until it becomes ${target} water.`;
+      temperatureChallengeProgress.textContent = `Round ${temperatureChallengeRound + 1} of ${temperatureChallengeTargets.length}`;
+      temperatureChallengeFeedback.textContent = "Use the buttons to change the temperature, then check your answer.";
+      checkTemperatureButton.textContent = "Check the state";
+      checkTemperatureButton.disabled = false;
+      challengeCoolButton.disabled = false;
+      challengeHeatButton.disabled = false;
+      updateChallengeTemperature();
+    }
+
+    function updateChallengeTemperature() {
+      const state = getState(challengeTemperatureValue);
+      challengeTemperature.textContent = String(challengeTemperatureValue);
+      challengeState.textContent = `${state[0].toUpperCase()}${state.slice(1)} water`;
+      challengeCoolButton.disabled = challengeTemperatureValue <= temperatureLimits.min;
+      challengeHeatButton.disabled = challengeTemperatureValue >= temperatureLimits.max;
+    }
+
+    function checkTemperatureChallenge() {
+      if (checkTemperatureButton.dataset.passed === "finished") {
+        startTemperatureChallenge();
+        challengeCoolButton.focus();
+        return;
+      }
+      if (checkTemperatureButton.dataset.passed === "true") {
+        if (temperatureChallengeRound === temperatureChallengeTargets.length - 1) {
+          temperatureChallengeProgress.textContent = "Challenge complete!";
+          temperatureChallengePrompt.textContent = "You mastered all three states of matter!";
+          temperatureChallengeFeedback.textContent = "Great work! Play again to get a new sequence of targets.";
+          checkTemperatureButton.dataset.passed = "finished";
+          checkTemperatureButton.textContent = "Play again";
+          return;
+        }
+        temperatureChallengeRound++;
+        challengeTemperatureValue = 22;
+        checkTemperatureButton.dataset.passed = "false";
+        renderTemperatureChallenge();
+        return;
+      }
+
+      const target = temperatureChallengeTargets[temperatureChallengeRound];
+      const currentState = getState(challengeTemperatureValue);
+      if (currentState !== target) {
+        const hint = target === "solid"
+          ? "Cool the water to 0°C or below."
+          : target === "gas"
+            ? "Heat the water to 100°C or above."
+            : "Keep the water above 0°C and below 100°C.";
+        temperatureChallengeFeedback.textContent = `Not yet—this is ${currentState} water. ${hint}`;
+        return;
+      }
+
+      checkTemperatureButton.dataset.passed = "true";
+      checkTemperatureButton.textContent = temperatureChallengeRound === temperatureChallengeTargets.length - 1
+        ? "Finish challenge"
+        : "Next target";
+      temperatureChallengeFeedback.textContent = `Correct! You reached ${target} water at ${challengeTemperatureValue}°C.`;
+      challengeCoolButton.disabled = true;
+      challengeHeatButton.disabled = true;
+    }
+
+    function startMoleculeMatch() {
+      selectedMatchCard = null;
+      pendingMismatchCards = [];
+      matchedPairCount = 0;
+      matchingProgress.textContent = "0 of 3 pairs matched";
+      matchingFeedback.textContent = "Choose two cards to find a matching pair.";
+      matchingCards.replaceChildren();
+
+      const cards = shuffled(moleculePairs.flatMap(pair => [
+        { pairId: pair.id, type: "state", text: pair.state },
+        { pairId: pair.id, type: "behavior", text: pair.behavior }
+      ]));
+      cards.forEach((card, index) => {
+        const button = document.createElement("button");
+        button.className = "matching-card";
+        button.type = "button";
+        button.textContent = "?";
+        button.dataset.pairId = card.pairId;
+        button.setAttribute("aria-label", `Card ${index + 1}, hidden`);
+        button.addEventListener("click", () => revealMatchCard(button, card));
+        matchingCards.append(button);
+      });
+    }
+
+    function revealMatchCard(button, card) {
+      if (button.disabled || selectedMatchCard === button) return;
+      if (pendingMismatchCards.length) {
+        pendingMismatchCards.forEach(mismatchedCard => {
+          mismatchedCard.button.classList.remove("is-revealed");
+          mismatchedCard.button.textContent = "?";
+          mismatchedCard.button.setAttribute("aria-label", "Hidden card");
+        });
+        pendingMismatchCards = [];
+      }
+
+      button.classList.add("is-revealed");
+      button.textContent = card.text;
+      button.setAttribute("aria-label", `${card.type}: ${card.text}`);
+      if (!selectedMatchCard) {
+        selectedMatchCard = button;
+        matchingFeedback.textContent = "Now choose its matching card.";
+        return;
+      }
+
+      const firstCard = selectedMatchCard;
+      if (firstCard.dataset.pairId === card.pairId) {
+        firstCard.classList.add("is-matched");
+        button.classList.add("is-matched");
+        firstCard.disabled = true;
+        button.disabled = true;
+        matchedPairCount++;
+        matchingProgress.textContent = `${matchedPairCount} of 3 pairs matched`;
+        matchingFeedback.textContent = matchedPairCount === moleculePairs.length
+          ? "All matched! You know how molecules behave in every state."
+          : "That’s a match! Find another pair.";
+      } else {
+        pendingMismatchCards = [
+          { button: firstCard },
+          { button }
+        ];
+        matchingFeedback.textContent = "Not a pair yet. Choose another card to try again.";
+      }
+      selectedMatchCard = null;
+    }
+
+    function returnToGameChoices() {
+      const previousMiniGame = activeMiniGame;
+      activeMiniGame = null;
+      miniGameScreen.classList.add("hidden");
+      startMenu.classList.remove("hidden");
+      continueButton.disabled = !readSavedGame();
+      (previousMiniGame === "quiz" ? quizModeButton : temperatureModeButton).focus();
     }
 
     function beginGame(character) {
@@ -1398,6 +1734,22 @@
       updateCreatorPreview();
       characterNameInput.focus();
     });
+    quizModeButton.addEventListener("click", () => showMiniGame("quiz"));
+    temperatureModeButton.addEventListener("click", () => showMiniGame("temperature"));
+    matchingModeButton.addEventListener("click", () => showMiniGame("matching"));
+    quizNextButton.addEventListener("click", advanceQuiz);
+    challengeCoolButton.addEventListener("click", () => {
+      if (checkTemperatureButton.dataset.passed === "true") return;
+      challengeTemperatureValue = Math.max(temperatureLimits.min, challengeTemperatureValue - 5);
+      updateChallengeTemperature();
+    });
+    challengeHeatButton.addEventListener("click", () => {
+      if (checkTemperatureButton.dataset.passed === "true") return;
+      challengeTemperatureValue = Math.min(temperatureLimits.max, challengeTemperatureValue + 5);
+      updateChallengeTemperature();
+    });
+    checkTemperatureButton.addEventListener("click", checkTemperatureChallenge);
+    miniGameMenuButton.addEventListener("click", returnToGameChoices);
     continueButton.addEventListener("click", () => {
       const save = readSavedGame();
       if (save) continueGame(save);
