@@ -170,9 +170,11 @@
           <span class="station-label">Molecule scanner</span>
         </button>
         <button class="lab-character narrator-in-world" id="worldNarrator" type="button" aria-label="Talk to Nova, the 3D human science guide">
+          <span class="world-avatar-fallback" id="worldNarratorAvatar" aria-hidden="true"></span>
           <span class="world-character-name">Nova</span>
         </button>
         <div class="lab-player" id="labPlayer" role="img" aria-label="Your explorer">
+          <span class="world-avatar-fallback" id="worldPlayerAvatar" aria-hidden="true"></span>
           <span class="world-character-name" id="worldPlayerName"></span>
         </div>
         <div class="lab-interaction-hint" id="labInteractionHint" aria-live="polite">Walk close to Nova or the scanner, then press E to interact.</div>
@@ -210,6 +212,14 @@
         <div class="eyebrow mission-label">Current mission</div>
         <h2 id="missionTitle">Freeze the sample</h2>
         <p class="mission-copy" id="missionCopy">Cool the water until it becomes a solid. Aim for 0°C or colder.</p>
+        <div class="mission-progress" id="missionProgress" role="progressbar" aria-label="Mission progress" aria-valuemin="0" aria-valuemax="3" aria-valuenow="0">
+          <span id="missionProgressBar"></span>
+        </div>
+        <ol class="mission-checklist" aria-label="Mission steps">
+          <li id="missionTemperatureStep"><span>Reach the target state</span><small class="mission-step-status">Not yet</small></li>
+          <li id="missionScanStep"><span>Scan unique molecules</span><small class="mission-step-status">Not yet</small></li>
+          <li id="missionLockStep"><span>Lock in your sample</span><small class="mission-step-status">Not yet</small></li>
+        </ol>
 
         <div class="thermometer">
           <div class="thermometer-heading">

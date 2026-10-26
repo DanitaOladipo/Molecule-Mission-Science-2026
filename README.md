@@ -6,13 +6,15 @@ Build a human explorer with a chosen skin tone, hairstyle, and suit color. Walk
 around the interactive lab with the arrow keys or on-screen controls, talk to
 Nova, scan molecules, and earn wearable mission clothes. The explorer and
 narrator are animated 3D characters, and character creation includes a live 3D
-preview. The narrator offers
-subtitles and an optional, more natural-paced browser voice. The existing game
-QR code shares the same page with other players.
+preview. Missions track temperature, molecule scans, and sample confirmation as
+you work. The narrator offers subtitles and an optional, more natural-paced
+browser voice. The existing game QR code shares the same page with other players.
 
 The explorer and narrator are real, animated 3D characters rendered with
-WebGL. The game loads a pinned Three.js build from cdnjs, so 3D graphics require
-an internet connection and a browser with WebGL enabled.
+WebGL, with idle, walking, and waving animations. The game loads a pinned Three.js
+build from cdnjs, so full 3D graphics require an internet connection and a
+browser with WebGL enabled; illustrated character fallbacks remain available
+when 3D cannot load.
 
 Use the arrow keys to walk, **E** to interact with Nova or the scanner, and
 **W/A/S/D** to select molecules when the molecule display is focused.

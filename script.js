@@ -43,6 +43,13 @@
     const labStation = document.getElementById("labStation");
     const lab3dCanvas = document.getElementById("lab3dScene");
     const lab3dStatus = document.getElementById("lab3dStatus");
+    const worldPlayerAvatar = document.getElementById("worldPlayerAvatar");
+    const worldNarratorAvatar = document.getElementById("worldNarratorAvatar");
+    const missionTemperatureStep = document.getElementById("missionTemperatureStep");
+    const missionScanStep = document.getElementById("missionScanStep");
+    const missionLockStep = document.getElementById("missionLockStep");
+    const missionProgress = document.getElementById("missionProgress");
+    const missionProgressBar = document.getElementById("missionProgressBar");
     const explorerAvatar = document.getElementById("explorerAvatar");
     const explorerName = document.getElementById("explorerName");
     const explorerSpecialty = document.getElementById("explorerSpecialty");
@@ -220,6 +227,21 @@
       }
     }
 
+    function updateLabAvatarFallbacks() {
+      if (threeLab) return;
+      const fallbackCharacter = currentCharacter || {
+        skinTone: "light",
+        hairStyle: "curls",
+        outfitColor: "ocean",
+        equippedOutfit: "mission-suit",
+        equippedAccessory: ""
+      };
+      renderCharacterAvatar(worldPlayerAvatar, fallbackCharacter);
+      renderCharacterAvatar(worldNarratorAvatar, narratorProfile);
+      worldPlayerAvatar.classList.add("is-visible");
+      worldNarratorAvatar.classList.add("is-visible");
+    }
+
     function saveGame() {
       if (!currentCharacter) return;
       try {
@@ -288,6 +310,7 @@
       explorerSpecialty.textContent = currentCharacter.specialty;
       worldPlayerName.textContent = currentCharacter.name;
       renderCharacterAvatar(narratorCharacter, narratorProfile, true);
+      updateLabAvatarFallbacks();
       updateWorldPosition();
       updateInventory();
       update3dExplorer();
@@ -343,6 +366,8 @@
         clothes: new THREE.MeshStandardMaterial({ color: outfitColors[character.outfitColor] || outfitColors.ocean, roughness: 0.76 }),
         pants: new THREE.MeshStandardMaterial({ color: "#34415b", roughness: 0.84 }),
         shoes: new THREE.MeshStandardMaterial({ color: "#403746", roughness: 0.8 }),
+        sclera: new THREE.MeshStandardMaterial({ color: "#fffaf5", roughness: 0.42 }),
+        cheeks: new THREE.MeshStandardMaterial({ color: "#e99b91", roughness: 0.76 }),
         coat: new THREE.MeshStandardMaterial({ color: "#fbfaf4", roughness: 0.74 }),
         coatDetail: new THREE.MeshStandardMaterial({ color: "#82bbae", roughness: 0.76 }),
         eyes: new THREE.MeshStandardMaterial({ color: "#332932", roughness: 0.48 }),
@@ -350,7 +375,7 @@
         lenses: new THREE.MeshStandardMaterial({ color: "#afe7e6", transparent: true, opacity: 0.62, roughness: 0.2 }),
         pack: new THREE.MeshStandardMaterial({ color: "#a4adbf", metalness: 0.2, roughness: 0.56 })
       };
-      const sphereGeometry = new THREE.SphereGeometry(1, 20, 14);
+      const sphereGeometry = new THREE.SphereGeometry(1, 32, 24);
       const addSphere = (parent, material, x, y, z, sx, sy, sz) => {
         const mesh = new THREE.Mesh(sphereGeometry, material);
         mesh.position.set(x, y, z);
@@ -366,41 +391,66 @@
         parent.add(mesh);
         return mesh;
       };
-      const addLimb = (material, start, end, radiusTop, radiusBottom) => {
+      const addLimb = (parent, material, start, end, radiusTop, radiusBottom) => {
         const delta = new THREE.Vector3(end[0] - start[0], end[1] - start[1], end[2] - start[2]);
         const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radiusTop, radiusBottom, delta.length(), 12), material);
         mesh.position.set((start[0] + end[0]) / 2, (start[1] + end[1]) / 2, (start[2] + end[2]) / 2);
         mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.normalize());
         mesh.castShadow = true;
-        group.add(mesh);
+        parent.add(mesh);
         return mesh;
       };
       const pants = addCylinder(group, materials.pants, 0.29, 0.34, 0.39, 0, 0.54, 0, 14);
-      const leftLeg = addLimb(materials.pants, [-0.15, 0.49, 0], [-0.17, 0.12, 0], 0.105, 0.13);
-      const rightLeg = addLimb(materials.pants, [0.15, 0.49, 0], [0.17, 0.12, 0], 0.105, 0.13);
-      addSphere(group, materials.shoes, -0.17, 0.085, 0.09, 0.16, 0.085, 0.23);
-      addSphere(group, materials.shoes, 0.17, 0.085, 0.09, 0.16, 0.085, 0.23);
+      const leftLeg = new THREE.Group();
+      leftLeg.position.set(-0.15, 0.49, 0);
+      group.add(leftLeg);
+      addLimb(leftLeg, materials.pants, [0, 0, 0], [-0.02, -0.37, 0], 0.105, 0.13);
+      addSphere(leftLeg, materials.shoes, -0.02, -0.405, 0.09, 0.16, 0.085, 0.23);
+      const rightLeg = new THREE.Group();
+      rightLeg.position.set(0.15, 0.49, 0);
+      group.add(rightLeg);
+      addLimb(rightLeg, materials.pants, [0, 0, 0], [0.02, -0.37, 0], 0.105, 0.13);
+      addSphere(rightLeg, materials.shoes, 0.02, -0.405, 0.09, 0.16, 0.085, 0.23);
       addCylinder(group, materials.skin, 0.105, 0.12, 0.21, 0, 0.88, 0, 12);
       const torso = addCylinder(group, materials.clothes, 0.22, 0.31, 0.59, 0, 1.1, 0, 16);
-      const leftArm = addLimb(materials.clothes, [-0.25, 1.31, 0], [-0.38, 0.94, 0.015], 0.095, 0.085);
-      const rightArm = addLimb(materials.clothes, [0.25, 1.31, 0], [0.38, 0.94, 0.015], 0.095, 0.085);
-      addSphere(group, materials.skin, -0.38, 0.93, 0.015, 0.09, 0.095, 0.09);
-      addSphere(group, materials.skin, 0.38, 0.93, 0.015, 0.09, 0.095, 0.09);
-      addSphere(group, materials.skin, 0, 1.59, 0.025, 0.32, 0.385, 0.29);
-      const hairCap = addSphere(group, materials.hair, 0, 1.81, -0.005, 0.34, 0.21, 0.3);
-      const hairFringe = addSphere(group, materials.hair, 0, 1.68, 0.21, 0.29, 0.105, 0.15);
+      const leftArm = new THREE.Group();
+      leftArm.position.set(-0.25, 1.31, 0);
+      group.add(leftArm);
+      addLimb(leftArm, materials.clothes, [0, 0, 0], [-0.13, -0.23, 0.015], 0.105, 0.09);
+      addLimb(leftArm, materials.skin, [-0.13, -0.2, 0.015], [-0.16, -0.39, 0.015], 0.075, 0.065);
+      addSphere(leftArm, materials.skin, -0.16, -0.405, 0.015, 0.08, 0.085, 0.08);
+      const rightArm = new THREE.Group();
+      rightArm.position.set(0.25, 1.31, 0);
+      group.add(rightArm);
+      addLimb(rightArm, materials.clothes, [0, 0, 0], [0.13, -0.23, 0.015], 0.105, 0.09);
+      addLimb(rightArm, materials.skin, [0.13, -0.2, 0.015], [0.16, -0.39, 0.015], 0.075, 0.065);
+      addSphere(rightArm, materials.skin, 0.16, -0.405, 0.015, 0.08, 0.085, 0.08);
+      const head = new THREE.Group();
+      head.position.set(0, 1.59, 0.025);
+      group.add(head);
+      addSphere(head, materials.skin, 0, 0, 0, 0.34, 0.4, 0.31);
+      const hairCap = addSphere(head, materials.hair, 0, 0.22, -0.03, 0.36, 0.22, 0.31);
+      const hairFringe = addSphere(head, materials.hair, 0, 0.09, 0.21, 0.3, 0.11, 0.15);
       hairFringe.rotation.z = character.hairStyle === "waves" ? -0.12 : 0.04;
-      const hairBun = addSphere(group, materials.hair, 0.16, 1.97, -0.035, 0.12, 0.13, 0.12);
+      const hairBun = addSphere(head, materials.hair, 0.16, 0.38, -0.035, 0.13, 0.14, 0.13);
       const hairCurls = [-0.23, -0.13, 0, 0.13, 0.23].map(x =>
-        addSphere(group, materials.hair, x, 1.85, 0.105, 0.105, 0.105, 0.12)
+        addSphere(head, materials.hair, x, 0.26, 0.105, 0.11, 0.11, 0.12)
       );
-      addSphere(group, materials.eyes, -0.115, 1.62, 0.284, 0.028, 0.042, 0.022);
-      addSphere(group, materials.eyes, 0.115, 1.62, 0.284, 0.028, 0.042, 0.022);
-      addSphere(group, materials.skin, 0, 1.54, 0.303, 0.037, 0.05, 0.042);
+      addSphere(head, materials.sclera, -0.115, 0.035, 0.292, 0.052, 0.066, 0.027);
+      addSphere(head, materials.sclera, 0.115, 0.035, 0.292, 0.052, 0.066, 0.027);
+      addSphere(head, materials.eyes, -0.115, 0.035, 0.322, 0.027, 0.041, 0.018);
+      addSphere(head, materials.eyes, 0.115, 0.035, 0.322, 0.027, 0.041, 0.018);
+      addSphere(head, materials.hair, -0.115, 0.095, 0.3, 0.065, 0.014, 0.022);
+      addSphere(head, materials.hair, 0.115, 0.095, 0.3, 0.065, 0.014, 0.022);
+      addSphere(head, materials.skin, 0, -0.055, 0.32, 0.043, 0.055, 0.045);
       const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.065, 0.012, 6, 14, Math.PI), materials.eyes);
-      mouth.position.set(0, 1.48, 0.292);
+      mouth.position.set(0, -0.12, 0.305);
       mouth.rotation.z = Math.PI;
-      group.add(mouth);
+      head.add(mouth);
+      addSphere(head, materials.skin, -0.33, -0.015, 0.035, 0.075, 0.105, 0.075);
+      addSphere(head, materials.skin, 0.33, -0.015, 0.035, 0.075, 0.105, 0.075);
+      addSphere(head, materials.cheeks, -0.19, -0.09, 0.258, 0.068, 0.035, 0.018);
+      addSphere(head, materials.cheeks, 0.19, -0.09, 0.258, 0.068, 0.035, 0.018);
 
       const coatPieces = [];
       const coatFront = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.55, 0.045), materials.coat);
@@ -429,17 +479,17 @@
       const lensGeometry = new THREE.SphereGeometry(0.09, 16, 10);
       [-0.105, 0.105].forEach(x => {
         const lens = new THREE.Mesh(lensGeometry, materials.lenses);
-        lens.position.set(x, 1.63, 0.32);
+        lens.position.set(x, 0.04, 0.32);
         lens.scale.set(1, 0.75, 0.2);
         goggles.add(lens);
         const frame = new THREE.Mesh(new THREE.TorusGeometry(0.083, 0.017, 8, 20), materials.glasses);
-        frame.position.set(x, 1.63, 0.335);
+        frame.position.set(x, 0.04, 0.335);
         goggles.add(frame);
       });
       const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.022, 0.02), materials.glasses);
-      bridge.position.set(0, 1.63, 0.335);
+      bridge.position.set(0, 0.04, 0.335);
       goggles.add(bridge);
-      group.add(goggles);
+      head.add(goggles);
       const pack = new THREE.Mesh(new THREE.BoxGeometry(0.37, 0.47, 0.17), materials.pack);
       pack.position.set(0, 1.08, -0.27);
       pack.castShadow = true;
@@ -452,8 +502,9 @@
       shadow.rotation.x = -Math.PI / 2;
       shadow.position.y = 0.015;
       group.add(shadow);
+      group.scale.setScalar(1.55);
       group.userData.characterParts = {
-        materials, pants, torso, leftArm, rightArm, leftLeg, rightLeg,
+        materials, pants, torso, head, leftArm, rightArm, leftLeg, rightLeg,
         coatPieces, goggles, pack, hairCap, hairFringe, hairBun, hairCurls
       };
       update3dAppearance(group, character);
@@ -488,6 +539,7 @@
         lab3dCanvas.classList.add("hidden");
         lab3dStatus.classList.remove("hidden");
         lab3dStatus.textContent = "3D characters need an internet connection to load the 3D engine. Please reload when online.";
+        updateLabAvatarFallbacks();
         return;
       }
       const THREE = window.THREE;
@@ -528,14 +580,21 @@
           equippedAccessory: ""
         });
         scene.add(player);
-        threeLab = { THREE, renderer, scene, camera, narrator, player, lastFrame: 0, movingUntil: 0 };
+        threeLab = {
+          THREE, renderer, scene, camera, narrator, player, lastFrame: 0, movingUntil: 0,
+          playerWaveUntil: 0, narratorWaveUntil: 0
+        };
+        worldPlayerAvatar.classList.remove("is-visible");
+        worldNarratorAvatar.classList.remove("is-visible");
         resize3dLab();
         updateWorldPosition();
         if (currentCharacter) update3dExplorer();
       } catch (error) {
+        threeLab = null;
         lab3dCanvas.classList.add("hidden");
         lab3dStatus.classList.remove("hidden");
         lab3dStatus.textContent = `3D characters could not start: ${error.message}`;
+        updateLabAvatarFallbacks();
       }
     }
 
@@ -553,7 +612,7 @@
         const light = new THREE.DirectionalLight("#fff5e7", 2.7);
         light.position.set(-3, 6, 8);
         scene.add(light);
-        const camera = new THREE.OrthographicCamera(-1.2, 1.2, 1.5, -1.5, 0.1, 30);
+        const camera = new THREE.OrthographicCamera(-1.5, 1.5, 2.3, -2.3, 0.1, 30);
         camera.position.set(0, 1.1, 8);
         camera.lookAt(0, 1.1, 0);
         const avatar = create3dHuman({
@@ -564,7 +623,7 @@
           equippedAccessory: ""
         });
         scene.add(avatar);
-        threePreview = { renderer, scene, camera, avatar };
+        threePreview = { renderer, scene, camera, avatar, lastFrame: 0 };
         resize3dPreview();
       } catch (error) {
         creatorPreviewAvatar.textContent = `3D preview unavailable: ${error.message}`;
@@ -577,6 +636,14 @@
       const bounds = creatorPreviewAvatar.getBoundingClientRect();
       if (!bounds.width || !bounds.height) return;
       threePreview.renderer.setSize(bounds.width, bounds.height, false);
+      threePreview.renderer.render(threePreview.scene, threePreview.camera);
+    }
+
+    function render3dPreview(time) {
+      if (!threePreview || characterCreator.classList.contains("hidden") || time - threePreview.lastFrame < 32) return;
+      threePreview.lastFrame = time;
+      threePreview.avatar.rotation.y = Math.sin(time * 0.0007) * 0.22;
+      threePreview.avatar.position.y = Math.sin(time * 0.002) * 0.025;
       threePreview.renderer.render(threePreview.scene, threePreview.camera);
     }
 
@@ -612,13 +679,27 @@
         frustumHeight * 0.12,
         0
       );
-      const walk = time < threeLab.movingUntil ? Math.sin(time * 0.012) * 0.24 : 0;
+      const moving = time < threeLab.movingUntil;
+      const walk = moving ? Math.sin(time * 0.018) * 0.62 : 0;
       const parts = player.userData.characterParts;
       parts.leftArm.rotation.z = walk;
-      parts.rightArm.rotation.z = -walk;
-      parts.leftLeg.rotation.z = -walk * 0.65;
-      parts.rightLeg.rotation.z = walk * 0.65;
-      narrator.userData.characterParts.leftArm.rotation.z = Math.sin(time * 0.002) * 0.025;
+      const playerWave = time < threeLab.playerWaveUntil;
+      parts.rightArm.rotation.z = playerWave
+        ? 1.55 + Math.sin(time * 0.025) * 0.36
+        : -walk;
+      parts.leftLeg.rotation.z = -walk * 0.55;
+      parts.rightLeg.rotation.z = walk * 0.55;
+      const playerY = frustumHeight * ((playerPosition.y || 12) / 100);
+      player.position.y = playerY + (moving ? Math.abs(Math.sin(time * 0.018)) * 0.08 : Math.sin(time * 0.0022) * 0.035);
+      parts.head.rotation.z = Math.sin(time * 0.0015) * 0.025;
+      const narratorParts = narrator.userData.characterParts;
+      const narratorWave = time < threeLab.narratorWaveUntil;
+      narratorParts.leftArm.rotation.z = narratorWave
+        ? 1.5 + Math.sin(time * 0.022) * 0.32
+        : Math.sin(time * 0.0018) * 0.08;
+      narratorParts.rightArm.rotation.z = -0.12 + Math.sin(time * 0.0018) * 0.07;
+      narratorParts.head.rotation.z = Math.sin(time * 0.0016) * 0.035;
+      narrator.position.y = frustumHeight * 0.12 + Math.sin(time * 0.002) * 0.04;
       renderer.render(scene, camera);
     }
 
@@ -679,7 +760,24 @@
         return;
       }
       if (nearby.id === "station") {
-        highlightParticle(selectedParticleIndex + 1);
+        if (currentCharacter.specialty === "Heat Tracker") {
+          const message = `Scanner reading: ${temperature}°C, ${getState()} water. ${missionCopy.textContent}`;
+          feedback.textContent = message;
+          setNarration(message);
+          labInteractionHint.textContent = "Temperature and state checked by the scanner.";
+          return;
+        }
+        const goal = getScanGoal();
+        const nextUnscanned = Array.from(
+          { length: particles.length },
+          (_, offset) => (selectedParticleIndex + 1 + offset) % particles.length
+        ).find(index => !scannedParticles.has(index));
+        if (goal > 0 && scannedParticles.size >= goal) {
+          feedback.textContent = "Your molecule scan goal is complete. Adjust the sample and lock in this state!";
+          labInteractionHint.textContent = "Scan goal complete. Lock in your sample when ready.";
+          return;
+        }
+        highlightParticle(nextUnscanned ?? selectedParticleIndex);
         labInteractionHint.textContent = "Molecule scanned! Keep exploring or adjust the sample temperature.";
         return;
       }
@@ -687,6 +785,7 @@
       const guideMessage = mission
         ? `Hi, ${currentCharacter.name}! ${mission.narration} Use the arrow keys to explore, then find the scanner to map molecules.`
         : `Wonderful work, ${currentCharacter.name}! You explored every state of matter. Your lab clothes are yours to keep.`;
+      if (threeLab) threeLab.playerWaveUntil = performance.now() + 1800;
       setNarration(guideMessage);
       labInteractionHint.textContent = `Nova: “${mission ? "Let's explore the sample together!" : "You did it, scientist!"}”`;
     }
@@ -987,6 +1086,7 @@
       } else {
         feedback.textContent = `Molecule ${selectedParticleIndex + 1} highlighted. Your specialty mission is to calibrate the temperature.`;
       }
+      updateMissionProgress();
       saveGame();
     }
 
@@ -1010,6 +1110,8 @@
 
     function animate(time) {
       drawMolecules(time);
+      render3dLab(time);
+      render3dPreview(time);
       requestAnimationFrame(animate);
     }
 
@@ -1033,10 +1135,12 @@
       if (state === "solid") phaseNote.textContent = "At 0°C or colder, water freezes into a solid.";
       else if (state === "liquid") phaseNote.textContent = "Water is liquid between 0°C and 100°C.";
       else phaseNote.textContent = "At 100°C or hotter, water boils into a gas.";
+      updateMissionProgress();
     }
 
     function setNarration(message) {
       narratorSubtitle.textContent = message;
+      if (threeLab) threeLab.narratorWaveUntil = performance.now() + Math.min(5000, Math.max(1200, message.length * 42));
       worldNarrator.classList.remove("is-speaking");
       if (narratorAnimationTimer !== null) window.clearTimeout(narratorAnimationTimer);
       worldNarrator.classList.add("is-speaking");
@@ -1097,6 +1201,46 @@
       return closestTarget;
     }
 
+    function updateMissionProgress() {
+      if (!currentCharacter) return;
+      const mission = missions[missionIndex];
+      const isComplete = complete || !mission;
+      const isHeatTracker = currentCharacter.specialty === "Heat Tracker";
+      const stateReached = isComplete || getState() === mission.state;
+      const calibrationTarget = isHeatTracker && mission ? getCalibrationTarget(mission) : null;
+      const temperatureReached = isComplete ||
+        (stateReached && (!isHeatTracker || temperature === calibrationTarget));
+      const scanGoal = getScanGoal();
+      const scanReached = isComplete || (isHeatTracker
+        ? temperatureReached && temperature === calibrationTarget
+        : scannedParticles.size >= scanGoal);
+      const lockReady = temperatureReached && scanReached;
+      const stepsDone = Number(temperatureReached) + Number(scanReached) + Number(isComplete);
+
+      missionTemperatureStep.querySelector(".mission-step-status").textContent = temperatureReached
+        ? "Done"
+        : isHeatTracker
+          ? `${stateReached ? "Set" : "Reach"} ${calibrationTarget}°C`
+          : `Reach ${mission.state}`;
+      missionTemperatureStep.classList.toggle("is-complete", temperatureReached);
+      missionScanStep.querySelector("span").textContent = isHeatTracker
+        ? "Calibrate the sample"
+        : `Scan unique molecules (${Math.min(scannedParticles.size, scanGoal)}/${scanGoal})`;
+      missionScanStep.querySelector(".mission-step-status").textContent = scanReached
+        ? "Done"
+        : isHeatTracker
+          ? `${temperature}°C / ${calibrationTarget}°C`
+          : `${Math.min(scannedParticles.size, scanGoal)} of ${scanGoal}`;
+      missionScanStep.classList.toggle("is-complete", scanReached);
+      missionLockStep.querySelector(".mission-step-status").textContent = isComplete
+        ? "Done"
+        : lockReady ? "Ready" : "Not yet";
+      missionLockStep.classList.toggle("is-complete", isComplete);
+      missionProgress.setAttribute("aria-valuenow", String(stepsDone));
+      missionProgress.setAttribute("aria-valuetext", `${stepsDone} of 3 mission steps complete`);
+      missionProgressBar.style.width = `${(stepsDone / 3) * 100}%`;
+    }
+
     function setTemperature(amount) {
       if (!gameStarted || complete) return;
       temperature = Math.max(temperatureLimits.min, Math.min(temperatureLimits.max, temperature + amount));
@@ -1112,12 +1256,15 @@
       if (currentCharacter.specialty === "Heat Tracker") {
         const calibrationTarget = getCalibrationTarget(mission);
         missionCopy.textContent = `${mission.copy} Heat Tracker calibration: set the sample to exactly ${calibrationTarget}°C.`;
+        missionTemperatureStep.querySelector("span").textContent = `Reach the ${mission.state} state`;
         setNarration(`${mission.narration} As a Heat Tracker, calibrate the sample to exactly ${calibrationTarget}°C.`);
       } else {
         const scanGoal = getScanGoal();
         missionCopy.textContent = `${mission.copy} ${currentCharacter.specialty} objective: scan ${scanGoal} unique ${scanGoal === 1 ? "molecule" : "molecules"} by using the scanner or clicking them.`;
+        missionTemperatureStep.querySelector("span").textContent = `Reach the ${mission.state} state`;
         setNarration(`${mission.narration} ${currentCharacter.specialty} objective: use the molecule scanner or click to scan ${scanGoal} unique ${scanGoal === 1 ? "molecule" : "molecules"}, then lock in the sample.`);
       }
+      updateMissionProgress();
       feedback.textContent = "Ready, explorer? Hold a temperature button to power up your changes!";
       submitButton.disabled = false;
     }
