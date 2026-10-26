@@ -17,6 +17,7 @@
     const characterCreator = document.getElementById("characterCreator");
     const characterForm = document.getElementById("characterForm");
     const characterNameInput = document.getElementById("characterName");
+    const creatorPreviewAvatar = document.getElementById("creatorPreviewAvatar");
     const gameScreen = document.getElementById("gameScreen");
     const playerAvatar = document.getElementById("playerAvatar");
     const playerName = document.getElementById("playerName");
@@ -32,9 +33,17 @@
     const narratorSubtitle = document.getElementById("narratorSubtitle");
     const narratorVoiceToggle = document.getElementById("narratorVoiceToggle");
     const narratorVoiceStatus = document.getElementById("narratorVoiceStatus");
+    const narratorCharacter = document.getElementById("narratorCharacter");
+    const worldNarrator = document.getElementById("worldNarrator");
+    const worldPlayer = document.getElementById("labPlayer");
+    const worldPlayerName = document.getElementById("worldPlayerName");
+    const labWorld = document.getElementById("labWorld");
+    const labCoordinate = document.getElementById("labCoordinate");
+    const labInteractionHint = document.getElementById("labInteractionHint");
+    const labStation = document.getElementById("labStation");
+    const lab3dCanvas = document.getElementById("lab3dScene");
+    const lab3dStatus = document.getElementById("lab3dStatus");
     const explorerAvatar = document.getElementById("explorerAvatar");
-    const explorerAccessory = document.getElementById("explorerAccessory");
-    const explorerOutfit = document.getElementById("explorerOutfit");
     const explorerName = document.getElementById("explorerName");
     const explorerSpecialty = document.getElementById("explorerSpecialty");
     const inventoryCount = document.getElementById("inventoryCount");
@@ -49,25 +58,25 @@
     const missions = [
       {
         state: "solid",
-        title: "Mission 1 · Freeze and inspect",
-        copy: "Cool the water to 0°C or colder, then inspect the molecules locked in their solid structure.",
-        narration: "First, cool the sample to 0°C or colder. Then inspect the molecules to learn how a solid holds its shape.",
+        title: "Mission 1 · Chill it and freeze!",
+        copy: "Chill the water to 0°C or below, then inspect how its molecules lock into a solid.",
+        narration: "First up, chill the sample to 0°C or below! Then inspect how the molecules lock into a solid that holds its shape.",
         scanGoal: 1,
         calibratedTemperature: 0
       },
       {
         state: "liquid",
-        title: "Mission 2 · Melt and map",
-        copy: "Warm the ice above 0°C but below 100°C, then map the moving liquid molecules.",
-        narration: "Now warm the ice until it melts. Map the moving molecules while the sample is liquid—above 0°C and below 100°C.",
+        title: "Mission 2 · Warm it up and map!",
+        copy: "Warm the ice above 0°C but below 100°C, then map the molecules as they slide around.",
+        narration: "Next, warm the ice until it melts! Map the molecules as they slide around in liquid water—above 0°C and below 100°C.",
         scanGoal: 3,
         calibratedTemperature: 50
       },
       {
         state: "gas",
-        title: "Mission 3 · Evaporate and explore",
-        copy: "Heat the water to 100°C or hotter, then explore the molecules spreading through the sample.",
-        narration: "For the final mission, heat the water to 100°C or hotter. Explore the fast-moving gas molecules to finish your journey.",
+        title: "Mission 3 · Heat it up and zoom!",
+        copy: "Heat the water to 100°C or above, then explore the speedy molecules spreading through the gas.",
+        narration: "Final mission—heat the water to 100°C or above! Explore the speedy gas molecules and zoom across the finish line.",
         scanGoal: 5,
         calibratedTemperature: 100
       }
@@ -85,8 +94,32 @@
     };
     const temperatureLimits = { min: -40, max: 140 };
     const saveKey = "moleculeMissionSave";
-    const avatarChoices = ["🧑‍🔬", "🤖", "👽", "🐙"];
+    const legacyAvatarChoices = ["🧑‍🔬", "🤖", "👽", "🐙"];
+    const skinTones = {
+      light: "#f5c9a5",
+      warm: "#d99a70",
+      deep: "#a76643",
+      rich: "#70432f"
+    };
+    const hairStyles = ["curls", "waves", "short", "bun"];
+    const outfitColors = {
+      ocean: "#5b7fc5",
+      coral: "#d87875",
+      leaf: "#4e9a79"
+    };
     const specialtyChoices = ["Matter Mapper", "Heat Tracker", "Mission Explorer"];
+    const narratorProfile = {
+      name: "Nova",
+      skinTone: "warm",
+      hairStyle: "bun",
+      outfitColor: "leaf",
+      equippedOutfit: "lab-coat",
+      equippedAccessory: "safety-goggles"
+    };
+    const playerPosition = { x: 36, y: 13 };
+    let narratorAnimationTimer = null;
+    let threeLab = null;
+    let threePreview = null;
     let temperature = 22;
     let missionIndex = 0;
     let complete = false;
@@ -122,7 +155,10 @@
           typeof save.character === "object" &&
           typeof save.character.name === "string" &&
           save.character.name.trim() &&
-          avatarChoices.includes(save.character.avatar) &&
+          (save.character.avatar === "human" || legacyAvatarChoices.includes(save.character.avatar)) &&
+          (!save.character.skinTone || Object.hasOwn(skinTones, save.character.skinTone)) &&
+          (!save.character.hairStyle || hairStyles.includes(save.character.hairStyle)) &&
+          (!save.character.outfitColor || Object.hasOwn(outfitColors, save.character.outfitColor)) &&
           specialtyChoices.includes(save.character.specialty);
         const validProgress =
           Number.isInteger(save.missionIndex) &&
@@ -159,13 +195,24 @@
         return {
           character: {
             ...save.character,
+            avatar: "human",
+            skinTone: Object.hasOwn(skinTones, save.character.skinTone) ? save.character.skinTone : "light",
+            hairStyle: hairStyles.includes(save.character.hairStyle) ? save.character.hairStyle : "curls",
+            outfitColor: Object.hasOwn(outfitColors, save.character.outfitColor) ? save.character.outfitColor : "ocean",
             unlockedItems,
             equippedOutfit,
             equippedAccessory
           },
           missionIndex: save.missionIndex,
           temperature: save.temperature,
-          scannedParticles: validScans
+          scannedParticles: validScans,
+          playerPosition: save.playerPosition &&
+            Number.isFinite(save.playerPosition.x) &&
+            Number.isFinite(save.playerPosition.y) &&
+            save.playerPosition.x >= 5 && save.playerPosition.x <= 95 &&
+            save.playerPosition.y >= 9 && save.playerPosition.y <= 65
+            ? save.playerPosition
+            : null
         };
       } catch (error) {
         saveNote.textContent = "Saved game access failed. Check your browser storage settings.";
@@ -180,7 +227,8 @@
           character: currentCharacter,
           missionIndex,
           temperature,
-          scannedParticles: [...scannedParticles]
+          scannedParticles: [...scannedParticles],
+          playerPosition
         }));
         saveNote.textContent = "Your mission progress is saved on this device.";
         continueButton.disabled = false;
@@ -190,23 +238,63 @@
       }
     }
 
+    function createHumanAvatar(character, portrait = false) {
+      const avatar = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      avatar.setAttribute("viewBox", portrait ? "18 0 84 105" : "0 0 120 180");
+      avatar.setAttribute("class", "human-avatar");
+      avatar.setAttribute("aria-hidden", "true");
+      avatar.style.setProperty("--skin-tone", skinTones[character.skinTone] || skinTones.light);
+      avatar.style.setProperty("--outfit-color", outfitColors[character.outfitColor] || outfitColors.ocean);
+      avatar.dataset.hair = hairStyles.includes(character.hairStyle) ? character.hairStyle : "curls";
+      avatar.dataset.coat = character.equippedOutfit === "lab-coat" ? "true" : "false";
+      avatar.dataset.goggles = character.equippedAccessory === "safety-goggles" ? "true" : "false";
+      avatar.dataset.jetpack = character.equippedAccessory === "jetpack" ? "true" : "false";
+      avatar.innerHTML = `
+        <ellipse class="avatar-shadow" cx="60" cy="169" rx="31" ry="7"/>
+        <g class="avatar-jetpack"><rect x="18" y="81" width="19" height="43" rx="7"/><path d="M23 124h9l-3 13h-6z"/></g>
+        <path class="avatar-pants" d="M43 111h34l-3 41H59l-3-25-5 25H36z"/>
+        <path class="avatar-shoes" d="M37 149h16l-1 9H31q0-6 6-9m24 0h13l7 9H61z"/>
+        <path class="avatar-neck" d="M52 59h16v21H52z"/>
+        <path class="avatar-arm" d="M42 74 33 81l-8 29q-1 6 5 7 5 1 7-5l12-24zm36 0 9 7 8 29q1 6-5 7-5 1-7-5L71 88z"/>
+        <path class="avatar-sleeve" d="m42 72 18-5 18 5 9 42-27 9-27-9z"/>
+        <path class="avatar-shirt" d="M49 72h22l7 39-18 8-18-8z"/>
+        <path class="avatar-coat" d="m42 72 10-5 8 11 8-11 10 5 9 42-19 7-8-28-8 28-19-7z"/>
+        <path class="avatar-coat-detail" d="m52 68 8 10-5 11-8-15zm16 0-8 10 5 11 8-15z"/>
+        <path class="avatar-pocket" d="M69 98h9v10h-9z"/>
+        <path class="avatar-face" d="M60 17c-15 0-23 11-23 27 0 17 11 28 23 28s23-11 23-28C83 28 75 17 60 17z"/>
+        <path class="avatar-ear" d="M38 39q-8-3-7 6 1 7 8 7m43-13q8-3 7 6-1 7-8 7"/>
+        <path class="avatar-hair hair-shape hair-curls" d="M37 42q-8-20 7-29 2-10 14-8 10-7 19 2 13 4 10 21l-5 13-5-17q-17 7-35 2z"/>
+        <path class="avatar-hair hair-shape hair-waves" d="M37 42q-5-20 10-28 14-12 27 0 13 6 7 28l-5-14q-10 5-18 0-8 8-17 3z"/>
+        <path class="avatar-hair hair-shape hair-short" d="M37 41q-5-19 10-27 15-10 28 2 9 7 4 24l-6-13q-14 6-31 1z"/>
+        <path class="avatar-hair hair-shape hair-bun" d="M37 41q-5-19 10-27 15-10 28 2 9 7 4 24l-6-13q-14 6-31 1z"/><circle class="avatar-hair hair-bun-knot" cx="78" cy="12" r="9"/>
+        <path class="avatar-brow" d="M46 43q5-3 9 0m10 0q5-3 9 0"/>
+        <ellipse class="avatar-eye" cx="51" cy="49" rx="2" ry="2.6"/><ellipse class="avatar-eye" cx="69" cy="49" rx="2" ry="2.6"/>
+        <path class="avatar-smile" d="M53 58q7 6 14 0"/>
+        <g class="avatar-goggles"><path d="M42 44h15v10H42q-4-5 0-10m21 0h15q4 5 0 10H63zM57 47h6"/></g>
+      `;
+      return avatar;
+    }
+
+    function renderCharacterAvatar(container, character, portrait = false) {
+      container.replaceChildren(createHumanAvatar(character, portrait));
+    }
+
     function updatePlayerBadge() {
       playerName.textContent = currentCharacter.name;
-      playerAvatar.textContent = currentCharacter.avatar;
+      renderCharacterAvatar(playerAvatar, currentCharacter, true);
       playerSpecialty.textContent = currentCharacter.specialty;
-      explorerAvatar.textContent = currentCharacter.avatar;
+      renderCharacterAvatar(explorerAvatar, currentCharacter);
       explorerName.textContent = currentCharacter.name;
       explorerSpecialty.textContent = currentCharacter.specialty;
+      worldPlayerName.textContent = currentCharacter.name;
+      renderCharacterAvatar(narratorCharacter, narratorProfile, true);
+      updateWorldPosition();
       updateInventory();
+      update3dExplorer();
     }
 
     function updateInventory() {
-      const outfit = wardrobeItems.find(item => item.id === currentCharacter.equippedOutfit);
-      const accessory = wardrobeItems.find(item => item.id === currentCharacter.equippedAccessory);
-      explorerOutfit.textContent = outfit ? outfit.emoji : "";
-      explorerOutfit.setAttribute("aria-label", outfit ? `Wearing ${outfit.name}` : "No outfit equipped");
-      explorerAccessory.textContent = accessory ? accessory.emoji : "";
-      explorerAccessory.setAttribute("aria-label", accessory ? `Wearing ${accessory.name}` : "No accessory equipped");
+      renderCharacterAvatar(explorerAvatar, currentCharacter);
       const unlocked = wardrobeItems.filter(item => currentCharacter.unlockedItems.includes(item.id));
       inventoryCount.textContent = `${unlocked.length} ${unlocked.length === 1 ? "item" : "items"} earned`;
       inventoryItems.replaceChildren();
@@ -243,6 +331,380 @@
       inventoryCopy.textContent = unlocked.length === wardrobeItems.length
         ? "All mission rewards unlocked! Select an item to change what your explorer wears."
         : "Select an earned item to equip it. Complete missions to unlock more clothes and accessories.";
+      update3dExplorer();
+    }
+
+    function create3dHuman(character) {
+      const THREE = window.THREE;
+      const group = new THREE.Group();
+      const materials = {
+        skin: new THREE.MeshStandardMaterial({ color: skinTones[character.skinTone] || skinTones.light, roughness: 0.72 }),
+        hair: new THREE.MeshStandardMaterial({ color: "#38271f", roughness: 0.88 }),
+        clothes: new THREE.MeshStandardMaterial({ color: outfitColors[character.outfitColor] || outfitColors.ocean, roughness: 0.76 }),
+        pants: new THREE.MeshStandardMaterial({ color: "#34415b", roughness: 0.84 }),
+        shoes: new THREE.MeshStandardMaterial({ color: "#403746", roughness: 0.8 }),
+        coat: new THREE.MeshStandardMaterial({ color: "#fbfaf4", roughness: 0.74 }),
+        coatDetail: new THREE.MeshStandardMaterial({ color: "#82bbae", roughness: 0.76 }),
+        eyes: new THREE.MeshStandardMaterial({ color: "#332932", roughness: 0.48 }),
+        glasses: new THREE.MeshStandardMaterial({ color: "#547083", metalness: 0.35, roughness: 0.32 }),
+        lenses: new THREE.MeshStandardMaterial({ color: "#afe7e6", transparent: true, opacity: 0.62, roughness: 0.2 }),
+        pack: new THREE.MeshStandardMaterial({ color: "#a4adbf", metalness: 0.2, roughness: 0.56 })
+      };
+      const sphereGeometry = new THREE.SphereGeometry(1, 20, 14);
+      const addSphere = (parent, material, x, y, z, sx, sy, sz) => {
+        const mesh = new THREE.Mesh(sphereGeometry, material);
+        mesh.position.set(x, y, z);
+        mesh.scale.set(sx, sy, sz);
+        mesh.castShadow = true;
+        parent.add(mesh);
+        return mesh;
+      };
+      const addCylinder = (parent, material, radiusTop, radiusBottom, length, x, y, z, radialSegments = 12) => {
+        const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radiusTop, radiusBottom, length, radialSegments), material);
+        mesh.position.set(x, y, z);
+        mesh.castShadow = true;
+        parent.add(mesh);
+        return mesh;
+      };
+      const addLimb = (material, start, end, radiusTop, radiusBottom) => {
+        const delta = new THREE.Vector3(end[0] - start[0], end[1] - start[1], end[2] - start[2]);
+        const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radiusTop, radiusBottom, delta.length(), 12), material);
+        mesh.position.set((start[0] + end[0]) / 2, (start[1] + end[1]) / 2, (start[2] + end[2]) / 2);
+        mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.normalize());
+        mesh.castShadow = true;
+        group.add(mesh);
+        return mesh;
+      };
+      const pants = addCylinder(group, materials.pants, 0.29, 0.34, 0.39, 0, 0.54, 0, 14);
+      const leftLeg = addLimb(materials.pants, [-0.15, 0.49, 0], [-0.17, 0.12, 0], 0.105, 0.13);
+      const rightLeg = addLimb(materials.pants, [0.15, 0.49, 0], [0.17, 0.12, 0], 0.105, 0.13);
+      addSphere(group, materials.shoes, -0.17, 0.085, 0.09, 0.16, 0.085, 0.23);
+      addSphere(group, materials.shoes, 0.17, 0.085, 0.09, 0.16, 0.085, 0.23);
+      addCylinder(group, materials.skin, 0.105, 0.12, 0.21, 0, 0.88, 0, 12);
+      const torso = addCylinder(group, materials.clothes, 0.22, 0.31, 0.59, 0, 1.1, 0, 16);
+      const leftArm = addLimb(materials.clothes, [-0.25, 1.31, 0], [-0.38, 0.94, 0.015], 0.095, 0.085);
+      const rightArm = addLimb(materials.clothes, [0.25, 1.31, 0], [0.38, 0.94, 0.015], 0.095, 0.085);
+      addSphere(group, materials.skin, -0.38, 0.93, 0.015, 0.09, 0.095, 0.09);
+      addSphere(group, materials.skin, 0.38, 0.93, 0.015, 0.09, 0.095, 0.09);
+      addSphere(group, materials.skin, 0, 1.59, 0.025, 0.32, 0.385, 0.29);
+      const hairCap = addSphere(group, materials.hair, 0, 1.81, -0.005, 0.34, 0.21, 0.3);
+      const hairFringe = addSphere(group, materials.hair, 0, 1.68, 0.21, 0.29, 0.105, 0.15);
+      hairFringe.rotation.z = character.hairStyle === "waves" ? -0.12 : 0.04;
+      const hairBun = addSphere(group, materials.hair, 0.16, 1.97, -0.035, 0.12, 0.13, 0.12);
+      const hairCurls = [-0.23, -0.13, 0, 0.13, 0.23].map(x =>
+        addSphere(group, materials.hair, x, 1.85, 0.105, 0.105, 0.105, 0.12)
+      );
+      addSphere(group, materials.eyes, -0.115, 1.62, 0.284, 0.028, 0.042, 0.022);
+      addSphere(group, materials.eyes, 0.115, 1.62, 0.284, 0.028, 0.042, 0.022);
+      addSphere(group, materials.skin, 0, 1.54, 0.303, 0.037, 0.05, 0.042);
+      const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.065, 0.012, 6, 14, Math.PI), materials.eyes);
+      mouth.position.set(0, 1.48, 0.292);
+      mouth.rotation.z = Math.PI;
+      group.add(mouth);
+
+      const coatPieces = [];
+      const coatFront = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.55, 0.045), materials.coat);
+      coatFront.position.set(-0.095, 1.1, 0.245);
+      coatFront.castShadow = true;
+      group.add(coatFront);
+      coatPieces.push(coatFront);
+      const coatFrontRight = coatFront.clone();
+      coatFrontRight.position.x = 0.095;
+      group.add(coatFrontRight);
+      coatPieces.push(coatFrontRight);
+      const coatTail = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.17, 0.055), materials.coat);
+      coatTail.position.set(0, 0.84, 0.08);
+      group.add(coatTail);
+      coatPieces.push(coatTail);
+      const collar = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.22, 4), materials.coatDetail);
+      collar.position.set(-0.115, 1.35, 0.258);
+      collar.rotation.z = -0.37;
+      group.add(collar);
+      const collarRight = collar.clone();
+      collarRight.position.x = 0.115;
+      collarRight.rotation.z = 0.37;
+      group.add(collarRight);
+      coatPieces.push(collar, collarRight);
+      const goggles = new THREE.Group();
+      const lensGeometry = new THREE.SphereGeometry(0.09, 16, 10);
+      [-0.105, 0.105].forEach(x => {
+        const lens = new THREE.Mesh(lensGeometry, materials.lenses);
+        lens.position.set(x, 1.63, 0.32);
+        lens.scale.set(1, 0.75, 0.2);
+        goggles.add(lens);
+        const frame = new THREE.Mesh(new THREE.TorusGeometry(0.083, 0.017, 8, 20), materials.glasses);
+        frame.position.set(x, 1.63, 0.335);
+        goggles.add(frame);
+      });
+      const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.022, 0.02), materials.glasses);
+      bridge.position.set(0, 1.63, 0.335);
+      goggles.add(bridge);
+      group.add(goggles);
+      const pack = new THREE.Mesh(new THREE.BoxGeometry(0.37, 0.47, 0.17), materials.pack);
+      pack.position.set(0, 1.08, -0.27);
+      pack.castShadow = true;
+      group.add(pack);
+
+      const shadow = new THREE.Mesh(
+        new THREE.CircleGeometry(0.39, 24),
+        new THREE.MeshBasicMaterial({ color: "#5f536b", transparent: true, opacity: 0.16 })
+      );
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.y = 0.015;
+      group.add(shadow);
+      group.userData.characterParts = {
+        materials, pants, torso, leftArm, rightArm, leftLeg, rightLeg,
+        coatPieces, goggles, pack, hairCap, hairFringe, hairBun, hairCurls
+      };
+      update3dAppearance(group, character);
+      return group;
+    }
+
+    function update3dAppearance(group, character) {
+      const parts = group.userData.characterParts;
+      if (!parts) return;
+      parts.materials.skin.color.set(skinTones[character.skinTone] || skinTones.light);
+      parts.materials.clothes.color.set(outfitColors[character.outfitColor] || outfitColors.ocean);
+      parts.materials.hair.color.set(character.hairColor || "#38271f");
+      parts.pants.material.color.set("#34415b");
+      const hairStyle = hairStyles.includes(character.hairStyle) ? character.hairStyle : "curls";
+      parts.hairCap.scale.y = hairStyle === "short" ? 0.13 : 0.21;
+      parts.hairFringe.scale.y = hairStyle === "short" ? 0.06 : 0.105;
+      parts.hairFringe.rotation.z = hairStyle === "waves" ? -0.12 : 0.04;
+      parts.hairBun.visible = hairStyle === "bun";
+      parts.hairCurls.forEach(curl => { curl.visible = hairStyle === "curls"; });
+      parts.coatPieces.forEach(piece => { piece.visible = character.equippedOutfit === "lab-coat"; });
+      parts.goggles.visible = character.equippedAccessory === "safety-goggles";
+      parts.pack.visible = character.equippedAccessory === "jetpack";
+    }
+
+    function update3dExplorer() {
+      if (!threeLab || !currentCharacter) return;
+      update3dAppearance(threeLab.player, currentCharacter);
+    }
+
+    function setup3dLab() {
+      if (!window.THREE) {
+        lab3dCanvas.classList.add("hidden");
+        lab3dStatus.classList.remove("hidden");
+        lab3dStatus.textContent = "3D characters need an internet connection to load the 3D engine. Please reload when online.";
+        return;
+      }
+      const THREE = window.THREE;
+      try {
+        const renderer = new THREE.WebGLRenderer({ canvas: lab3dCanvas, alpha: true, antialias: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 80);
+        camera.position.set(0, 3, 14);
+        camera.lookAt(0, 3, 0);
+        scene.add(new THREE.HemisphereLight("#ffffff", "#b8a7bd", 2.1));
+        const keyLight = new THREE.DirectionalLight("#fff5e7", 2.5);
+        keyLight.position.set(-4, 8, 7);
+        keyLight.castShadow = true;
+        scene.add(keyLight);
+        const fillLight = new THREE.DirectionalLight("#c8d9ff", 0.9);
+        fillLight.position.set(4, 4, 3);
+        scene.add(fillLight);
+        const floor = new THREE.Mesh(
+          new THREE.PlaneGeometry(60, 60),
+          new THREE.MeshStandardMaterial({ color: "#f1e8df", roughness: 0.94 })
+        );
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = -0.02;
+        floor.position.z = -0.3;
+        floor.receiveShadow = true;
+        scene.add(floor);
+        const narrator = create3dHuman(narratorProfile);
+        scene.add(narrator);
+        const player = create3dHuman({
+          skinTone: "light",
+          hairStyle: "curls",
+          outfitColor: "ocean",
+          equippedOutfit: "mission-suit",
+          equippedAccessory: ""
+        });
+        scene.add(player);
+        threeLab = { THREE, renderer, scene, camera, narrator, player, lastFrame: 0, movingUntil: 0 };
+        resize3dLab();
+        updateWorldPosition();
+        if (currentCharacter) update3dExplorer();
+      } catch (error) {
+        lab3dCanvas.classList.add("hidden");
+        lab3dStatus.classList.remove("hidden");
+        lab3dStatus.textContent = `3D characters could not start: ${error.message}`;
+      }
+    }
+
+    function setup3dPreview() {
+      if (!window.THREE) return;
+      try {
+        const THREE = window.THREE;
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.domElement.setAttribute("aria-hidden", "true");
+        creatorPreviewAvatar.replaceChildren(renderer.domElement);
+        const scene = new THREE.Scene();
+        scene.add(new THREE.HemisphereLight("#ffffff", "#b8a7bd", 2.2));
+        const light = new THREE.DirectionalLight("#fff5e7", 2.7);
+        light.position.set(-3, 6, 8);
+        scene.add(light);
+        const camera = new THREE.OrthographicCamera(-1.2, 1.2, 1.5, -1.5, 0.1, 30);
+        camera.position.set(0, 1.1, 8);
+        camera.lookAt(0, 1.1, 0);
+        const avatar = create3dHuman({
+          skinTone: "light",
+          hairStyle: "curls",
+          outfitColor: "ocean",
+          equippedOutfit: "mission-suit",
+          equippedAccessory: ""
+        });
+        scene.add(avatar);
+        threePreview = { renderer, scene, camera, avatar };
+        resize3dPreview();
+      } catch (error) {
+        creatorPreviewAvatar.textContent = `3D preview unavailable: ${error.message}`;
+        creatorPreviewAvatar.setAttribute("role", "status");
+      }
+    }
+
+    function resize3dPreview() {
+      if (!threePreview) return;
+      const bounds = creatorPreviewAvatar.getBoundingClientRect();
+      if (!bounds.width || !bounds.height) return;
+      threePreview.renderer.setSize(bounds.width, bounds.height, false);
+      threePreview.renderer.render(threePreview.scene, threePreview.camera);
+    }
+
+    function resize3dLab() {
+      if (!threeLab) return;
+      const bounds = labWorld.getBoundingClientRect();
+      if (!bounds.width || !bounds.height) return;
+      threeLab.renderer.setSize(bounds.width, bounds.height, false);
+      const frustumHeight = 6;
+      const halfWidth = frustumHeight * bounds.width / bounds.height / 2;
+      threeLab.camera.left = -halfWidth;
+      threeLab.camera.right = halfWidth;
+      threeLab.camera.top = frustumHeight / 2;
+      threeLab.camera.bottom = -frustumHeight / 2;
+      threeLab.camera.updateProjectionMatrix();
+      updateWorldPosition();
+    }
+
+    function render3dLab(time) {
+      if (!gameStarted || !threeLab || time - threeLab.lastFrame < 32) return;
+      const { renderer, scene, camera, player, narrator } = threeLab;
+      threeLab.lastFrame = time;
+      const bounds = labWorld.getBoundingClientRect();
+      const frustumHeight = 6;
+      const frustumWidth = frustumHeight * bounds.width / Math.max(bounds.height, 1);
+      player.position.set(
+        ((playerPosition.x / 100) - 0.5) * frustumWidth,
+        frustumHeight * ((playerPosition.y || 12) / 100),
+        0.1
+      );
+      narrator.position.set(
+        (0.78 - 0.5) * frustumWidth,
+        frustumHeight * 0.12,
+        0
+      );
+      const walk = time < threeLab.movingUntil ? Math.sin(time * 0.012) * 0.24 : 0;
+      const parts = player.userData.characterParts;
+      parts.leftArm.rotation.z = walk;
+      parts.rightArm.rotation.z = -walk;
+      parts.leftLeg.rotation.z = -walk * 0.65;
+      parts.rightLeg.rotation.z = walk * 0.65;
+      narrator.userData.characterParts.leftArm.rotation.z = Math.sin(time * 0.002) * 0.025;
+      renderer.render(scene, camera);
+    }
+
+    function updateWorldPosition() {
+      worldPlayer.style.left = `${playerPosition.x}%`;
+      worldPlayer.style.bottom = `${playerPosition.y}%`;
+      worldPlayer.style.zIndex = String(100 - Math.round(playerPosition.y));
+      worldNarrator.style.zIndex = "88";
+      labCoordinate.textContent = `Lab position ${Math.round(playerPosition.x)}%, ${Math.round(playerPosition.y)}%`;
+      updateInteractionHint();
+    }
+
+    function nearbyInteraction() {
+      const targets = [
+        { id: "narrator", label: "Nova", x: 78, y: 12 },
+        { id: "station", label: "the molecule scanner", x: 19, y: 25 }
+      ];
+      return targets
+        .map(target => ({
+          ...target,
+          distance: Math.hypot(playerPosition.x - target.x, (playerPosition.y - target.y) * 1.25)
+        }))
+        .filter(target => target.distance <= 22)
+        .sort((a, b) => a.distance - b.distance)[0] || null;
+    }
+
+    function updateInteractionHint() {
+      const nearby = nearbyInteraction();
+      labInteractionHint.textContent = nearby
+        ? `Press E to ${nearby.id === "narrator" ? "talk to Nova" : "scan a molecule"}.`
+        : "Walk close to Nova or the scanner, then press E to interact.";
+    }
+
+    function movePlayer(direction) {
+      if (!gameStarted) return;
+      const step = 3.5;
+      if (direction === "up") playerPosition.y = Math.min(65, playerPosition.y + step);
+      if (direction === "down") playerPosition.y = Math.max(9, playerPosition.y - step);
+      if (direction === "left") {
+        playerPosition.x = Math.max(5, playerPosition.x - step);
+        if (threeLab) threeLab.player.rotation.y = -Math.PI / 2;
+      }
+      if (direction === "right") {
+        playerPosition.x = Math.min(95, playerPosition.x + step);
+        if (threeLab) threeLab.player.rotation.y = Math.PI / 2;
+      }
+      if (direction === "up" && threeLab) threeLab.player.rotation.y = 0;
+      if (direction === "down" && threeLab) threeLab.player.rotation.y = Math.PI;
+      if (threeLab) threeLab.movingUntil = performance.now() + 180;
+      updateWorldPosition();
+      saveGame();
+    }
+
+    function interactWithNearby() {
+      const nearby = nearbyInteraction();
+      if (!nearby) {
+        labInteractionHint.textContent = "Move closer to Nova or the molecule scanner to interact.";
+        return;
+      }
+      if (nearby.id === "station") {
+        highlightParticle(selectedParticleIndex + 1);
+        labInteractionHint.textContent = "Molecule scanned! Keep exploring or adjust the sample temperature.";
+        return;
+      }
+      const mission = missions[missionIndex];
+      const guideMessage = mission
+        ? `Hi, ${currentCharacter.name}! ${mission.narration} Use the arrow keys to explore, then find the scanner to map molecules.`
+        : `Wonderful work, ${currentCharacter.name}! You explored every state of matter. Your lab clothes are yours to keep.`;
+      setNarration(guideMessage);
+      labInteractionHint.textContent = `Nova: “${mission ? "Let's explore the sample together!" : "You did it, scientist!"}”`;
+    }
+
+    function updateCreatorPreview() {
+      const selected = name => characterForm.querySelector(`input[name="${name}"]:checked`)?.value;
+      const character = {
+        skinTone: selected("skinTone"),
+        hairStyle: selected("hairStyle"),
+        outfitColor: selected("outfitColor"),
+        equippedOutfit: "mission-suit"
+      };
+      if (threePreview) {
+        update3dAppearance(threePreview.avatar, character);
+        resize3dPreview();
+      } else {
+        renderCharacterAvatar(creatorPreviewAvatar, character);
+      }
     }
 
     function showGame() {
@@ -250,16 +712,20 @@
       characterCreator.classList.add("hidden");
       gameScreen.classList.remove("hidden");
       resizeCanvas();
-      canvas.focus();
+      resize3dLab();
+      labWorld.focus();
     }
 
     function beginGame(character) {
       currentCharacter = {
         ...character,
+        avatar: "human",
         unlockedItems: ["mission-suit"],
         equippedOutfit: "mission-suit",
         equippedAccessory: ""
       };
+      playerPosition.x = 36;
+      playerPosition.y = 13;
       missionIndex = 0;
       temperature = 22;
       scannedParticles = new Set();
@@ -280,6 +746,8 @@
       currentCharacter = save.character;
       missionIndex = save.missionIndex;
       temperature = save.temperature;
+      playerPosition.x = save.playerPosition?.x ?? 36;
+      playerPosition.y = save.playerPosition?.y ?? 13;
       scannedParticles = new Set(save.scannedParticles);
       complete = missionIndex === missions.length;
       gameStarted = true;
@@ -505,7 +973,7 @@
       particles[selectedParticleIndex].pulseUntil = performance.now() + 900;
       canvas.setAttribute(
         "aria-label",
-        `Molecule ${selectedParticleIndex + 1} of ${particles.length} selected in the ${getState()} sample. Use the arrow keys to select another molecule.`
+        `Molecule ${selectedParticleIndex + 1} of ${particles.length} selected in the ${getState()} sample. Use W, A, S, and D to select another molecule.`
       );
       const wasScanned = scannedParticles.has(selectedParticleIndex);
       scannedParticles.add(selectedParticleIndex);
@@ -551,7 +1019,7 @@
       temperatureOutput.textContent = temperature;
       canvas.setAttribute(
         "aria-label",
-        `Animated ${state} water molecules. Use the arrow keys to select a molecule, then Enter or Space to highlight it.`
+        `Animated ${state} water molecules. Use W, A, S, and D to select a molecule, then Enter or Space to highlight it.`
       );
       stateLabel.textContent = state[0].toUpperCase() + state.slice(1);
       particleCaption.textContent = palette.caption;
@@ -569,6 +1037,13 @@
 
     function setNarration(message) {
       narratorSubtitle.textContent = message;
+      worldNarrator.classList.remove("is-speaking");
+      if (narratorAnimationTimer !== null) window.clearTimeout(narratorAnimationTimer);
+      worldNarrator.classList.add("is-speaking");
+      narratorAnimationTimer = window.setTimeout(() => {
+        worldNarrator.classList.remove("is-speaking");
+        narratorAnimationTimer = null;
+      }, Math.min(5000, Math.max(1000, message.length * 45)));
       if (narratorVoiceEnabled) speakNarration(message);
     }
 
@@ -586,6 +1061,16 @@
       speechSynthesis.cancel();
       const utterance = new Utterance(message);
       utterance.lang = "en-US";
+      utterance.rate = 0.93;
+      utterance.pitch = 1.05;
+      utterance.volume = 0.85;
+      const voices = speechSynthesis.getVoices();
+      const englishVoices = voices.filter(voice => /^en(-|$)/i.test(voice.lang));
+      const friendlyVoice = englishVoices.find(voice =>
+        /samantha|ava|jenny|aria|sara|google us english|natural|neural/i.test(voice.name)
+      );
+      const chosenVoice = friendlyVoice || englishVoices.find(voice => /^en-us$/i.test(voice.lang)) || englishVoices[0];
+      if (chosenVoice) utterance.voice = chosenVoice;
       utterance.onerror = event => {
         narratorVoiceStatus.textContent = `Narrator voice could not play: ${event.error}. Subtitles are still available.`;
       };
@@ -630,11 +1115,22 @@
         setNarration(`${mission.narration} As a Heat Tracker, calibrate the sample to exactly ${calibrationTarget}°C.`);
       } else {
         const scanGoal = getScanGoal();
-        missionCopy.textContent = `${mission.copy} ${currentCharacter.specialty} objective: scan ${scanGoal} unique ${scanGoal === 1 ? "molecule" : "molecules"} by clicking them.`;
-        setNarration(`${mission.narration} ${currentCharacter.specialty} objective: click and scan ${scanGoal} unique ${scanGoal === 1 ? "molecule" : "molecules"}, then lock in the sample.`);
+        missionCopy.textContent = `${mission.copy} ${currentCharacter.specialty} objective: scan ${scanGoal} unique ${scanGoal === 1 ? "molecule" : "molecules"} by using the scanner or clicking them.`;
+        setNarration(`${mission.narration} ${currentCharacter.specialty} objective: use the molecule scanner or click to scan ${scanGoal} unique ${scanGoal === 1 ? "molecule" : "molecules"}, then lock in the sample.`);
       }
-      feedback.textContent = "Tip: hold a temperature button to change it faster.";
+      feedback.textContent = "Ready, explorer? Hold a temperature button to power up your changes!";
       submitButton.disabled = false;
+    }
+
+    function popMissionPanel() {
+      const controlPanel = submitButton.closest(".control-panel");
+      if (!controlPanel) return;
+      controlPanel.classList.remove("mission-pop");
+      void controlPanel.offsetWidth;
+      controlPanel.classList.add("mission-pop");
+      controlPanel.addEventListener("animationend", event => {
+        if (event.animationName === "mission-pop") controlPanel.classList.remove("mission-pop");
+      }, { once: true });
     }
 
     function submitSample() {
@@ -665,6 +1161,7 @@
         return;
       }
 
+      popMissionPanel();
       const reward = wardrobeItems.find(item => item.rewardMission === missionIndex + 1);
       if (reward && !currentCharacter.unlockedItems.includes(reward.id)) {
         currentCharacter.unlockedItems.push(reward.id);
@@ -690,7 +1187,7 @@
       missionCount.textContent = "Mission complete!";
       missionTitle.textContent = "You did it!";
       missionCopy.textContent = "You guided water through solid, liquid, and gas. You’re a molecule master!";
-      feedback.textContent = "Great work—now you know how temperature changes matter.";
+      feedback.textContent = "Amazing work, molecule master! You powered water through all three states.";
       setNarration(`Mission complete, ${currentCharacter.name}! You earned every reward and guided water through solid, liquid, and gas.`);
       submitButton.disabled = true;
       coolButton.disabled = true;
@@ -727,11 +1224,12 @@
     bindTemperatureButton(heatButton, 5);
     canvas.addEventListener("pointerdown", selectParticleAtPointer);
     canvas.addEventListener("keydown", event => {
-      if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      const key = event.key.toLowerCase();
+      if (key === "a" || key === "w") {
         event.preventDefault();
         event.stopPropagation();
         highlightParticle(selectedParticleIndex - 1);
-      } else if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      } else if (key === "d" || key === "s") {
         event.preventDefault();
         event.stopPropagation();
         highlightParticle(selectedParticleIndex + 1);
@@ -750,6 +1248,7 @@
       startMenu.classList.add("hidden");
       characterCreator.classList.remove("hidden");
       characterForm.reset();
+      updateCreatorPreview();
       characterNameInput.focus();
     });
     continueButton.addEventListener("click", () => {
@@ -782,10 +1281,26 @@
       const characterData = new FormData(characterForm);
       beginGame({
         name,
-        avatar: String(characterData.get("avatar")),
+        avatar: "human",
+        skinTone: String(characterData.get("skinTone")),
+        hairStyle: String(characterData.get("hairStyle")),
+        outfitColor: String(characterData.get("outfitColor")),
         specialty: String(characterData.get("specialty"))
       });
     });
+    characterForm.addEventListener("input", updateCreatorPreview);
+    characterForm.addEventListener("change", updateCreatorPreview);
+    document.querySelectorAll(".direction-pad [data-move]").forEach(button => {
+      button.addEventListener("click", () => movePlayer(button.dataset.move));
+    });
+    worldNarrator.addEventListener("click", interactWithNearby);
+    narratorCharacter.addEventListener("click", () => {
+      const guideMessage = missions[missionIndex]
+        ? `Hi, ${currentCharacter?.name || "scientist"}! ${missions[missionIndex].narration}`
+        : `Wonderful work, ${currentCharacter?.name || "scientist"}! You explored every state of matter.`;
+      setNarration(guideMessage);
+    });
+    labStation.addEventListener("click", interactWithNearby);
     restartButton.addEventListener("click", () => {
       temperature = 22;
       missionIndex = 0;
@@ -841,17 +1356,32 @@
       if (event.target === qrDialog) qrDialog.close();
     });
     window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("resize", resize3dLab);
+    window.addEventListener("resize", resize3dPreview);
     window.addEventListener("keydown", event => {
       if (!gameStarted) return;
-      if (event.key === "ArrowDown" || event.key.toLowerCase() === "c") {
+      if (event.target instanceof Element && event.target.closest("input, textarea, select, [contenteditable='true']")) return;
+      const key = event.key.toLowerCase();
+      if (key.startsWith("arrow")) {
+        event.preventDefault();
+        movePlayer({
+          ArrowUp: "up",
+          ArrowDown: "down",
+          ArrowLeft: "left",
+          ArrowRight: "right"
+        }[event.key]);
+      } else if (key === "e") {
+        event.preventDefault();
+        interactWithNearby();
+      } else if (key === "c") {
         event.preventDefault();
         setTemperature(-5);
-      } else if (event.key === "ArrowUp" || event.key.toLowerCase() === "h") {
+      } else if (key === "h") {
         event.preventDefault();
         setTemperature(5);
       } else if (
         event.key === "Enter" &&
-        !(event.target instanceof Element && event.target.closest("button")) &&
+        !(event.target instanceof Element && event.target.closest("button, canvas")) &&
         document.activeElement !== coolButton &&
         document.activeElement !== heatButton &&
         document.activeElement !== submitButton &&
@@ -864,7 +1394,11 @@
     });
 
     makeParticles();
+    setup3dLab();
+    setup3dPreview();
     const savedGame = readSavedGame();
     continueButton.disabled = !savedGame;
+    updateCreatorPreview();
+    renderCharacterAvatar(narratorCharacter, narratorProfile, true);
     updateDisplay();
     requestAnimationFrame(animate);

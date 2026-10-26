@@ -32,10 +32,10 @@
       <div class="menu-panel panel">
         <p class="eyebrow">Your science adventure awaits</p>
         <h1 id="menuTitle">Molecule Mission</h1>
-        <p class="intro">Explore the world of water molecules. Create your scientist or continue your saved mission.</p>
+        <p class="intro">Build a person, explore the science lab, and guide water through every state of matter—or leap back into your saved mission!</p>
         <div class="menu-actions">
-          <button class="submit-button" id="newGameButton" type="button">✦ Create New Game</button>
-          <button class="restart-button" id="continueButton" type="button" disabled>▶ Continue Game</button>
+          <button class="submit-button" id="newGameButton" type="button">🚀 Start a New Adventure</button>
+          <button class="restart-button" id="continueButton" type="button" disabled>▶ Jump Back In</button>
         </div>
         <p class="save-note" id="saveNote" role="status">Your mission progress is saved on this device.</p>
       </div>
@@ -48,33 +48,42 @@
       </div>
       <div class="creator-panel panel">
         <p class="eyebrow">Welcome, future scientist</p>
-        <h1 id="creatorTitle">Create your character</h1>
-        <p class="intro">Choose who you’ll be on this mission. Your character will join you as you explore the states of matter.</p>
+        <h1 id="creatorTitle">Build your science explorer</h1>
+        <p class="intro">Make a human explorer your own, then step into the lab and meet your guide.</p>
         <form id="characterForm">
           <label class="field-label" for="characterName">Character name</label>
           <input id="characterName" name="characterName" type="text" maxlength="20" placeholder="Enter a name" autocomplete="nickname" required>
 
           <fieldset class="choice-group">
-            <legend class="field-label">Choose your explorer</legend>
-            <div class="avatar-options">
-              <label class="avatar-option">
-                <input type="radio" name="avatar" value="🧑‍🔬" checked>
-                <span class="avatar-card"><span class="avatar-icon" aria-hidden="true">🧑‍🔬</span><span>Scientist</span></span>
-              </label>
-              <label class="avatar-option">
-                <input type="radio" name="avatar" value="🤖">
-                <span class="avatar-card"><span class="avatar-icon" aria-hidden="true">🤖</span><span>Robot</span></span>
-              </label>
-              <label class="avatar-option">
-                <input type="radio" name="avatar" value="👽">
-                <span class="avatar-card"><span class="avatar-icon" aria-hidden="true">👽</span><span>Alien</span></span>
-              </label>
-              <label class="avatar-option">
-                <input type="radio" name="avatar" value="🐙">
-                <span class="avatar-card"><span class="avatar-icon" aria-hidden="true">🐙</span><span>Octopus</span></span>
-              </label>
+            <legend class="field-label">Choose skin tone</legend>
+            <div class="appearance-options skin-options">
+              <label class="appearance-option"><input type="radio" name="skinTone" value="light" checked><span class="appearance-card"><span class="skin-swatch skin-light" aria-hidden="true"></span><span>Light</span></span></label>
+              <label class="appearance-option"><input type="radio" name="skinTone" value="warm"><span class="appearance-card"><span class="skin-swatch skin-warm" aria-hidden="true"></span><span>Warm</span></span></label>
+              <label class="appearance-option"><input type="radio" name="skinTone" value="deep"><span class="appearance-card"><span class="skin-swatch skin-deep" aria-hidden="true"></span><span>Deep</span></span></label>
+              <label class="appearance-option"><input type="radio" name="skinTone" value="rich"><span class="appearance-card"><span class="skin-swatch skin-rich" aria-hidden="true"></span><span>Rich</span></span></label>
             </div>
           </fieldset>
+          <fieldset class="choice-group">
+            <legend class="field-label">Choose a hairstyle</legend>
+            <div class="appearance-options hair-options">
+              <label class="appearance-option"><input type="radio" name="hairStyle" value="curls" checked><span class="appearance-card"><span class="hair-swatch hair-curls" aria-hidden="true">〰</span><span>Curly</span></span></label>
+              <label class="appearance-option"><input type="radio" name="hairStyle" value="waves"><span class="appearance-card"><span class="hair-swatch hair-waves" aria-hidden="true">〰</span><span>Wavy</span></span></label>
+              <label class="appearance-option"><input type="radio" name="hairStyle" value="short"><span class="appearance-card"><span class="hair-swatch hair-short" aria-hidden="true">⌒</span><span>Short</span></span></label>
+              <label class="appearance-option"><input type="radio" name="hairStyle" value="bun"><span class="appearance-card"><span class="hair-swatch hair-bun" aria-hidden="true">♧</span><span>Bun</span></span></label>
+            </div>
+          </fieldset>
+          <fieldset class="choice-group">
+            <legend class="field-label">Pick your starting clothes</legend>
+            <div class="appearance-options clothes-options">
+              <label class="appearance-option"><input type="radio" name="outfitColor" value="ocean" checked><span class="appearance-card"><span class="clothes-swatch clothes-ocean" aria-hidden="true"></span><span>Ocean suit</span></span></label>
+              <label class="appearance-option"><input type="radio" name="outfitColor" value="coral"><span class="appearance-card"><span class="clothes-swatch clothes-coral" aria-hidden="true"></span><span>Coral suit</span></span></label>
+              <label class="appearance-option"><input type="radio" name="outfitColor" value="leaf"><span class="appearance-card"><span class="clothes-swatch clothes-leaf" aria-hidden="true"></span><span>Leaf suit</span></span></label>
+            </div>
+          </fieldset>
+          <div class="creator-preview">
+            <div class="eyebrow">Preview your 3D human explorer</div>
+            <div class="creator-preview-avatar" id="creatorPreviewAvatar" role="img" aria-label="Live preview of your human explorer"></div>
+          </div>
 
           <fieldset class="choice-group">
             <legend class="field-label">Pick your mission specialty</legend>
@@ -93,7 +102,7 @@
               </label>
             </div>
           </fieldset>
-          <button class="submit-button start-button" type="submit">Start the mission</button>
+          <button class="submit-button start-button" type="submit">🚀 Let’s Blast Off!</button>
         </form>
         <button class="restart-button menu-return" id="creatorBackButton" type="button">Back to main menu</button>
       </div>
@@ -108,11 +117,11 @@
       </div>
       <div class="mission-count" id="missionCount">Mission 1 of 3</div>
     </div>
-    <h1>Change the state.<br>Complete the mission.</h1>
-    <p class="intro">Heat or cool your sample and watch its molecules transform. Can you guide matter through all three states?</p>
+    <h1>Heat it up. Cool it down.<br>Make matter move!</h1>
+    <p class="intro">Pump up the energy, shift the state, and send your water molecules on a three-stage adventure!</p>
 
     <section class="narrator-panel panel" aria-labelledby="narratorTitle">
-      <div class="narrator-avatar" aria-hidden="true">🧑‍🚀</div>
+      <button class="narrator-avatar" id="narratorCharacter" type="button" aria-label="Talk to Nova, your human science guide"></button>
       <div class="narrator-message">
         <div class="narrator-heading">
           <div class="eyebrow" id="narratorTitle">Narrator Nova · mission subtitles</div>
@@ -125,12 +134,8 @@
 
     <section class="character-panel panel" aria-labelledby="characterPanelTitle">
       <div class="explorer-card">
-        <div class="eyebrow" id="characterPanelTitle">Your visible explorer</div>
-        <div class="explorer-portrait" aria-label="Your character wearing their equipped items">
-          <span class="explorer-accessory" id="explorerAccessory" aria-hidden="true"></span>
-          <span class="explorer-avatar" id="explorerAvatar" aria-hidden="true">🧑‍🔬</span>
-          <span class="explorer-outfit" id="explorerOutfit" aria-hidden="true">👕</span>
-        </div>
+        <div class="eyebrow" id="characterPanelTitle">Your explorer</div>
+        <div class="explorer-portrait" id="explorerAvatar" role="img" aria-label="Your human character wearing their equipped clothes"></div>
         <strong class="explorer-name" id="explorerName"></strong>
         <span class="explorer-specialty" id="explorerSpecialty"></span>
       </div>
@@ -147,6 +152,45 @@
       </div>
     </section>
 
+    <section class="lab-exploration panel" aria-labelledby="labTitle">
+      <div class="lab-heading">
+        <div>
+          <div class="eyebrow">Explore the science lab</div>
+          <h2 id="labTitle">Walk around and meet Nova</h2>
+        </div>
+        <span class="lab-coordinate" id="labCoordinate">Use the arrow keys to move</span>
+      </div>
+      <div class="lab-world" id="labWorld" tabindex="0" role="application" aria-label="Walkable science lab. Use the arrow keys to move. Move close to Nova and press E to talk.">
+        <div class="lab-window" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="lab-shelves" aria-hidden="true"><span></span><span></span><span></span></div>
+        <canvas class="lab-3d-scene" id="lab3dScene" aria-hidden="true"></canvas>
+        <button class="lab-station" id="labStation" type="button" aria-label="Use the molecule scanner station">
+          <span class="station-screen" aria-hidden="true">H₂O</span>
+          <span class="station-base" aria-hidden="true"></span>
+          <span class="station-label">Molecule scanner</span>
+        </button>
+        <button class="lab-character narrator-in-world" id="worldNarrator" type="button" aria-label="Talk to Nova, the 3D human science guide">
+          <span class="world-character-name">Nova</span>
+        </button>
+        <div class="lab-player" id="labPlayer" role="img" aria-label="Your explorer">
+          <span class="world-character-name" id="worldPlayerName"></span>
+        </div>
+        <div class="lab-interaction-hint" id="labInteractionHint" aria-live="polite">Walk close to Nova or the scanner, then press E to interact.</div>
+        <div class="lab-3d-status hidden" id="lab3dStatus" role="status"></div>
+      </div>
+      <div class="lab-controls">
+        <div class="direction-pad" aria-label="Movement controls">
+          <span></span>
+          <button type="button" data-move="up" aria-label="Move up">↑</button>
+          <span></span>
+          <button type="button" data-move="left" aria-label="Move left">←</button>
+          <button type="button" data-move="down" aria-label="Move down">↓</button>
+          <button type="button" data-move="right" aria-label="Move right">→</button>
+        </div>
+        <p>Arrow keys or the buttons move your explorer. Get close to Nova or the molecule scanner and press <kbd>E</kbd> to interact.</p>
+      </div>
+    </section>
+
     <section class="layout" aria-label="Molecule Mission game">
       <div class="panel sample-panel">
         <div class="sample-heading">
@@ -154,11 +198,11 @@
           <span class="state-pill" id="statePill"><span class="state-dot"></span><span id="stateLabel">Liquid</span></span>
         </div>
         <div class="canvas-wrap">
-          <canvas id="gameCanvas" role="group" tabindex="0" aria-label="Animated water molecules. Use the arrow keys to select a molecule, then Enter or Space to highlight it."></canvas>
+          <canvas id="gameCanvas" role="group" tabindex="0" aria-label="Animated water molecules. Use W, A, S, and D to select a molecule, then Enter or Space to highlight it."></canvas>
         </div>
         <div class="canvas-caption">
           <span id="particleCaption">Molecules slide past one another</span>
-          <span>Click or tap a molecule · focus here and use arrow keys</span>
+          <span>Click or tap a molecule · focus here and use W A S D</span>
         </div>
       </div>
 
@@ -182,8 +226,8 @@
           <button class="control-button" id="coolButton" type="button" aria-label="Cool by 5 degrees">❄ Cool −5°</button>
           <button class="control-button" id="heatButton" type="button" aria-label="Heat by 5 degrees">☀ Heat +5°</button>
         </div>
-        <button class="submit-button" id="submitButton" type="button">Lock in this state</button>
-        <p class="feedback" id="feedback" role="status">Tip: hold a temperature button to change it faster.</p>
+        <button class="submit-button" id="submitButton" type="button">🚀 Lock In This State!</button>
+        <p class="feedback" id="feedback" role="status">Ready, explorer? Hold a temperature button to power up your changes!</p>
         <button class="restart-button hidden" id="restartButton" type="button">Play again</button>
         <button class="restart-button" id="mainMenuButton" type="button">Main menu</button>
       </aside>
@@ -197,6 +241,7 @@
     </div>
   </main>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js" integrity="sha384-qOkzR5Ke/XkQxuGVJ9hpFEpDlcoLtWwVYhnJf06cLIZa2vaIptSqaubivErzmD5O" crossorigin="anonymous" defer></script>
   <script src="./script.js" defer></script>
 </body>
 </html>
