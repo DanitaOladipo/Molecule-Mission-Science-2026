@@ -11,17 +11,50 @@
   <main class="game">
     <div class="audio-toolbar">
       <button class="control-button music-toggle" id="musicToggle" type="button" aria-pressed="false">♫ Music: Off</button>
-      <button class="control-button music-toggle" id="shareQrButton" type="button" aria-haspopup="dialog">▦ Game choices QR</button>
+      <button class="control-button music-toggle" id="characterStoreButton" type="button" aria-haspopup="dialog" aria-controls="storeDialog">🛍 Character shop</button>
+      <button class="control-button music-toggle" id="shareQrButton" type="button" aria-haspopup="dialog">▦ Game & shop QR</button>
       <span class="visually-hidden" id="musicStatus" aria-live="polite"></span>
     </div>
     <dialog class="qr-dialog" id="qrDialog" aria-labelledby="qrTitle">
       <div class="qr-content">
         <button class="qr-close" id="qrCloseButton" type="button" aria-label="Close QR code">×</button>
         <p class="eyebrow">Share your science adventure</p>
-        <h2 id="qrTitle">Scan to choose a science game</h2>
+        <h2 id="qrTitle">Scan to open Molecule Mission</h2>
         <img class="qr-image" id="qrImage" alt="QR code for the Molecule Mission game choices">
         <p class="qr-status" id="qrStatus" role="status" aria-live="polite"></p>
-        <p class="qr-note">Scan with a phone camera to open the game choices. One QR code opens the lab adventure, Rapid-Fire Matter Quiz, Thermal Target Sprint, and Molecule Memory Match. The QR image service receives this page address to create the code.</p>
+        <p class="qr-note">Scan with a phone camera to open the games and character shop at this same page address. The QR image service receives this page address to create the code.</p>
+      </div>
+    </dialog>
+    <dialog class="store-dialog" id="storeDialog" aria-labelledby="storeTitle">
+      <div class="store-content">
+        <button class="qr-close" id="storeCloseButton" type="button" aria-label="Close character shop">×</button>
+        <p class="eyebrow">Make it yours</p>
+        <h2 id="storeTitle">Character shop</h2>
+        <p class="store-intro">Spend science credits on wearable items for your 3D explorer. Complete lab missions to earn more credits.</p>
+        <div class="store-character">
+          <div class="store-character-preview" id="storeCharacterPreview" role="img" aria-label="Preview of your character"></div>
+          <div>
+            <strong id="storeCharacterName">Your explorer</strong>
+            <p id="storeCharacterCopy">Create an explorer to personalize your shop preview.</p>
+          </div>
+          <span class="store-balance">✦ <span id="storeBalance">0</span> credits</span>
+        </div>
+        <section class="store-section" aria-labelledby="digitalStoreTitle">
+          <div class="eyebrow">In-game cosmetics</div>
+          <h3 id="digitalStoreTitle">Gear up your explorer</h3>
+          <div class="store-items" id="storeItems"></div>
+        </section>
+        <section class="store-section physical-store" aria-labelledby="physicalStoreTitle">
+          <div class="eyebrow">Physical merchandise</div>
+          <h3 id="physicalStoreTitle">Your character, out in the world</h3>
+          <div class="physical-products">
+            <article class="physical-product"><span aria-hidden="true">✨</span><div class="physical-product-avatar" aria-hidden="true"></div><strong>Explorer sticker sheet</strong><p>A character-themed sticker set preview.</p></article>
+            <article class="physical-product"><span aria-hidden="true">🖼️</span><div class="physical-product-avatar" aria-hidden="true"></div><strong>Mission portrait poster</strong><p>A keepsake portrait of your custom explorer.</p></article>
+            <article class="physical-product"><span aria-hidden="true">🧸</span><div class="physical-product-avatar" aria-hidden="true"></div><strong>Explorer mini figure</strong><p>A collectible character figure concept.</p></article>
+          </div>
+          <p class="physical-store-note">These are product previews only. Real checkout, payment, and shipping are not connected yet.</p>
+        </section>
+        <p class="store-status" id="storeStatus" role="status" aria-live="polite"></p>
       </div>
     </dialog>
     <section class="start-menu" id="startMenu" aria-labelledby="menuTitle">
@@ -32,7 +65,7 @@
       <div class="menu-panel panel">
         <p class="eyebrow">Your science adventure awaits</p>
         <h1 id="menuTitle">Molecule Mission</h1>
-        <p class="intro">Choose a science game: explore the lab, test your matter knowledge, match molecules to their state, or race to reach a target state. This page—and its QR code—opens every game.</p>
+        <p class="intro">Choose a science game, customize your explorer in the character shop, and collect gear. This page—and its QR code—opens the whole experience.</p>
         <div class="menu-actions">
           <button class="submit-button" id="newGameButton" type="button">🚀 3D Lab Adventure</button>
           <button class="restart-button" id="continueButton" type="button" disabled>▶ Jump Back In</button>
@@ -140,8 +173,8 @@
             </div>
           </fieldset>
           <div class="creator-preview">
-            <div class="eyebrow">Preview your 3D human explorer</div>
-            <div class="creator-preview-avatar" id="creatorPreviewAvatar" role="img" aria-label="Live preview of your human explorer"></div>
+            <div class="eyebrow" id="creatorPreviewHint">Preview your 3D human explorer · drag to rotate</div>
+            <div class="creator-preview-avatar" id="creatorPreviewAvatar" role="img" tabindex="0" aria-label="3D character preview. Drag to rotate, or use the left and right arrow keys."></div>
           </div>
 
           <fieldset class="choice-group">
@@ -184,7 +217,14 @@
       <div class="narrator-message">
         <div class="narrator-heading">
           <div class="eyebrow" id="narratorTitle">Narrator Nova · mission subtitles</div>
-          <button class="narrator-voice" id="narratorVoiceToggle" type="button" aria-pressed="false">🔊 Narrator voice: Off</button>
+          <div class="narrator-controls">
+            <label class="visually-hidden" for="narratorVoiceChoice">Narrator voice</label>
+            <select class="narrator-voice-choice" id="narratorVoiceChoice">
+              <option value="woman">Woman narrator</option>
+              <option value="man">Man narrator</option>
+            </select>
+            <button class="narrator-voice" id="narratorVoiceToggle" type="button" aria-pressed="false">🔊 Narrator voice: Off</button>
+          </div>
         </div>
         <p id="narratorSubtitle" aria-live="polite" aria-atomic="true">Welcome, scientist! I’ll guide you through every mission. Read my subtitles for your next step.</p>
         <span class="visually-hidden" id="narratorVoiceStatus" role="status" aria-live="polite"></span>

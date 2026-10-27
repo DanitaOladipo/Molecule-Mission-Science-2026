@@ -18,6 +18,7 @@
     const characterForm = document.getElementById("characterForm");
     const characterNameInput = document.getElementById("characterName");
     const creatorPreviewAvatar = document.getElementById("creatorPreviewAvatar");
+    const creatorPreviewHint = document.getElementById("creatorPreviewHint");
     const gameScreen = document.getElementById("gameScreen");
     const playerAvatar = document.getElementById("playerAvatar");
     const playerName = document.getElementById("playerName");
@@ -57,6 +58,7 @@
     const mainMenuButton = document.getElementById("mainMenuButton");
     const narratorSubtitle = document.getElementById("narratorSubtitle");
     const narratorVoiceToggle = document.getElementById("narratorVoiceToggle");
+    const narratorVoiceChoice = document.getElementById("narratorVoiceChoice");
     const narratorVoiceStatus = document.getElementById("narratorVoiceStatus");
     const narratorCharacter = document.getElementById("narratorCharacter");
     const worldNarrator = document.getElementById("worldNarrator");
@@ -81,6 +83,15 @@
     const inventoryCount = document.getElementById("inventoryCount");
     const inventoryCopy = document.getElementById("inventoryCopy");
     const inventoryItems = document.getElementById("inventoryItems");
+    const characterStoreButton = document.getElementById("characterStoreButton");
+    const storeDialog = document.getElementById("storeDialog");
+    const storeCloseButton = document.getElementById("storeCloseButton");
+    const storeCharacterPreview = document.getElementById("storeCharacterPreview");
+    const storeCharacterName = document.getElementById("storeCharacterName");
+    const storeCharacterCopy = document.getElementById("storeCharacterCopy");
+    const storeBalance = document.getElementById("storeBalance");
+    const storeItems = document.getElementById("storeItems");
+    const storeStatus = document.getElementById("storeStatus");
     const shareQrButton = document.getElementById("shareQrButton");
     const qrDialog = document.getElementById("qrDialog");
     const qrImage = document.getElementById("qrImage");
@@ -155,7 +166,9 @@
       { id: "mission-suit", name: "Mission suit", emoji: "🧥", slot: "outfit", rewardMission: 0 },
       { id: "safety-goggles", name: "Safety goggles", emoji: "🥽", slot: "accessory", rewardMission: 1 },
       { id: "lab-coat", name: "Lab coat", emoji: "🥼", slot: "outfit", rewardMission: 2 },
-      { id: "jetpack", name: "Jetpack", emoji: "🚀", slot: "accessory", rewardMission: 3 }
+      { id: "jetpack", name: "Jetpack", emoji: "🚀", slot: "accessory", rewardMission: 3 },
+      { id: "nebula-cape", name: "Nebula cape", emoji: "🦸", slot: "outfit", price: 30 },
+      { id: "star-badge", name: "Star badge", emoji: "🌟", slot: "accessory", price: 20 }
     ];
     const colors = {
       solid: { particle: "#8278d8", glow: "rgba(130, 120, 216, 0.27)", pill: "#8278d8", caption: "Molecules vibrate in fixed positions" },
@@ -190,11 +203,14 @@
     let narratorAnimationTimer = null;
     let threeLab = null;
     let threePreview = null;
+    let previewDrag = null;
     let temperature = 22;
     let missionIndex = 0;
     let complete = false;
     let gameStarted = false;
     let currentCharacter = null;
+    let scienceCredits = 0;
+    let narratorVoiceGender = "woman";
     let audioContext = null;
     let musicTimer = null;
     let musicEnabled = false;
@@ -249,14 +265,16 @@
           save.missionIndex <= missions.length &&
           Number.isFinite(save.temperature) &&
           save.temperature >= temperatureLimits.min &&
-          save.temperature <= temperatureLimits.max;
+          save.temperature <= temperatureLimits.max &&
+          (save.scienceCredits === undefined ||
+            (Number.isInteger(save.scienceCredits) && save.scienceCredits >= 0));
         if (!validCharacter || !validProgress) {
           saveNote.textContent = "Your saved game could not be read. Start a new game to begin again.";
           return null;
         }
         const availableItemIds = new Set(wardrobeItems.map(item => item.id));
         const earnedThroughProgress = wardrobeItems
-          .filter(item => item.rewardMission === 0 || item.rewardMission <= save.missionIndex)
+          .filter(item => item.price === undefined && (item.rewardMission === 0 || item.rewardMission <= save.missionIndex))
           .map(item => item.id);
         const unlockedItems = Array.isArray(save.character.unlockedItems)
           ? [...new Set(save.character.unlockedItems.filter(id => availableItemIds.has(id)))]
@@ -284,10 +302,12 @@
             outfitColor: Object.hasOwn(outfitColors, save.character.outfitColor) ? save.character.outfitColor : "ocean",
             unlockedItems,
             equippedOutfit,
-            equippedAccessory
+            equippedAccessory,
+            narratorVoiceGender: save.character.narratorVoiceGender === "man" ? "man" : "woman"
           },
           missionIndex: save.missionIndex,
           temperature: save.temperature,
+          scienceCredits: save.scienceCredits ?? save.missionIndex * 20,
           scannedParticles: validScans,
           playerPosition: save.playerPosition &&
             Number.isFinite(save.playerPosition.x) &&
@@ -325,6 +345,7 @@
           character: currentCharacter,
           missionIndex,
           temperature,
+          scienceCredits,
           scannedParticles: [...scannedParticles],
           playerPosition
         }));
@@ -347,8 +368,11 @@
       avatar.dataset.coat = character.equippedOutfit === "lab-coat" ? "true" : "false";
       avatar.dataset.goggles = character.equippedAccessory === "safety-goggles" ? "true" : "false";
       avatar.dataset.jetpack = character.equippedAccessory === "jetpack" ? "true" : "false";
+      avatar.dataset.cape = character.equippedOutfit === "nebula-cape" ? "true" : "false";
+      avatar.dataset.badge = character.equippedAccessory === "star-badge" ? "true" : "false";
       avatar.innerHTML = `
         <ellipse class="avatar-shadow" cx="60" cy="169" rx="31" ry="7"/>
+        <path class="avatar-cape" d="m43 70 17-5 17 5 12 57H31z"/>
         <g class="avatar-jetpack"><rect x="18" y="81" width="19" height="43" rx="7"/><path d="M23 124h9l-3 13h-6z"/></g>
         <path class="avatar-pants" d="M43 111h34l-3 41H59l-3-25-5 25H36z"/>
         <path class="avatar-shoes" d="M37 149h16l-1 9H31q0-6 6-9m24 0h13l7 9H61z"/>
@@ -369,6 +393,7 @@
         <ellipse class="avatar-eye" cx="51" cy="49" rx="2" ry="2.6"/><ellipse class="avatar-eye" cx="69" cy="49" rx="2" ry="2.6"/>
         <path class="avatar-smile" d="M53 58q7 6 14 0"/>
         <g class="avatar-goggles"><path d="M42 44h15v10H42q-4-5 0-10m21 0h15q4 5 0 10H63zM57 47h6"/></g>
+        <path class="avatar-badge" d="m60 82 2.4 4.8 5.3.8-3.8 3.7.9 5.3-4.8-2.5-4.8 2.5.9-5.3-3.8-3.7 5.3-.8z"/>
       `;
       return avatar;
     }
@@ -385,7 +410,7 @@
       explorerName.textContent = currentCharacter.name;
       explorerSpecialty.textContent = currentCharacter.specialty;
       worldPlayerName.textContent = currentCharacter.name;
-      renderCharacterAvatar(narratorCharacter, narratorProfile, true);
+      updateNarratorPresentation(currentCharacter.narratorVoiceGender);
       updateLabAvatarFallbacks();
       updateWorldPosition();
       updateInventory();
@@ -395,7 +420,7 @@
     function updateInventory() {
       renderCharacterAvatar(explorerAvatar, currentCharacter);
       const unlocked = wardrobeItems.filter(item => currentCharacter.unlockedItems.includes(item.id));
-      inventoryCount.textContent = `${unlocked.length} ${unlocked.length === 1 ? "item" : "items"} earned`;
+      inventoryCount.textContent = `${unlocked.length} ${unlocked.length === 1 ? "item" : "items"} owned`;
       inventoryItems.replaceChildren();
 
       wardrobeItems.forEach(item => {
@@ -411,7 +436,9 @@
         button.setAttribute("aria-pressed", String(isEquipped));
         button.setAttribute("aria-label", isUnlocked
           ? `${item.name}, ${isEquipped ? "equipped" : "equip"}`
-          : `${item.name}, earned after mission ${item.rewardMission}`);
+          : item.price
+            ? `${item.name}, available in the character shop for ${item.price} credits`
+            : `${item.name}, earned after mission ${item.rewardMission}`);
         const icon = document.createElement("span");
         icon.className = "inventory-item-icon";
         icon.setAttribute("aria-hidden", "true");
@@ -422,15 +449,99 @@
         const status = document.createElement("small");
         status.textContent = isUnlocked
           ? isEquipped ? "Equipped" : item.slot
-          : `Mission ${item.rewardMission}`;
+          : item.price ? `${item.price} credits` : `Mission ${item.rewardMission}`;
         button.append(icon, label, status);
         inventoryItems.append(button);
       });
 
-      inventoryCopy.textContent = unlocked.length === wardrobeItems.length
-        ? "All mission rewards unlocked! Select an item to change what your explorer wears."
-        : "Select an earned item to equip it. Complete missions to unlock more clothes and accessories.";
+      inventoryCopy.textContent = "Select an owned item to equip it. Complete missions to earn credits and unlock mission rewards; visit the character shop for more gear.";
       update3dExplorer();
+      updateStore();
+    }
+
+    function updateStore() {
+      storeBalance.textContent = String(scienceCredits);
+      storeCharacterName.textContent = currentCharacter?.name || "Your explorer";
+      storeCharacterCopy.textContent = currentCharacter
+        ? "Your custom 3D explorer is ready for new gear."
+        : continueButton.disabled
+          ? "Create an explorer to personalize your shop preview."
+          : "Continue your saved explorer to use earned credits here.";
+      renderCharacterAvatar(storeCharacterPreview, currentCharacter || {
+        skinTone: "light",
+        hairStyle: "curls",
+        outfitColor: "ocean",
+        equippedOutfit: "mission-suit",
+        equippedAccessory: ""
+      }, true);
+      document.querySelectorAll(".physical-product-avatar").forEach(preview => {
+        renderCharacterAvatar(preview, currentCharacter || {
+          skinTone: "light",
+          hairStyle: "curls",
+          outfitColor: "ocean",
+          equippedOutfit: "mission-suit",
+          equippedAccessory: ""
+        }, true);
+      });
+      storeItems.replaceChildren();
+      wardrobeItems.filter(item => item.price).forEach(item => {
+        const owned = Boolean(currentCharacter?.unlockedItems.includes(item.id));
+        const card = document.createElement("article");
+        card.className = "store-item";
+        const icon = document.createElement("span");
+        icon.className = "store-item-icon";
+        icon.setAttribute("aria-hidden", "true");
+        icon.textContent = item.emoji;
+        const name = document.createElement("strong");
+        name.textContent = item.name;
+        const description = document.createElement("p");
+        description.textContent = item.id === "nebula-cape"
+          ? "A shimmering cape for your mission suit."
+          : "A bright badge to celebrate your science missions.";
+        const buyButton = document.createElement("button");
+        buyButton.type = "button";
+        buyButton.className = "control-button store-buy";
+        buyButton.dataset.itemId = item.id;
+        buyButton.disabled = !currentCharacter || owned || scienceCredits < item.price;
+        buyButton.textContent = owned
+          ? "Owned"
+          : scienceCredits < item.price
+            ? `Need ${item.price} credits`
+            : `Buy · ${item.price} credits`;
+        card.append(icon, name, description, buyButton);
+        storeItems.append(card);
+      });
+    }
+
+    function purchaseShopItem(itemId) {
+      if (!currentCharacter) {
+        storeStatus.textContent = "Create an explorer before buying in-game gear.";
+        return;
+      }
+      const item = wardrobeItems.find(candidate => candidate.id === itemId && candidate.price);
+      if (!item || currentCharacter.unlockedItems.includes(item.id)) return;
+      if (scienceCredits < item.price) {
+        storeStatus.textContent = `You need ${item.price - scienceCredits} more science credits to buy ${item.name}.`;
+        return;
+      }
+      scienceCredits -= item.price;
+      currentCharacter.unlockedItems.push(item.id);
+      if (item.slot === "outfit") currentCharacter.equippedOutfit = item.id;
+      else currentCharacter.equippedAccessory = item.id;
+      updateInventory();
+      saveGame();
+      storeStatus.textContent = `${item.name} purchased and equipped.`;
+      setNarration(`${item.name} purchased and equipped. Your explorer is ready for the next mission!`);
+    }
+
+    function updateNarratorPresentation(gender) {
+      narratorVoiceGender = gender === "man" ? "man" : "woman";
+      narratorVoiceChoice.value = narratorVoiceGender;
+      narratorProfile.hairStyle = narratorVoiceGender === "man" ? "short" : "bun";
+      if (currentCharacter) currentCharacter.narratorVoiceGender = narratorVoiceGender;
+      renderCharacterAvatar(narratorCharacter, narratorProfile, true);
+      renderCharacterAvatar(worldNarratorAvatar, narratorProfile);
+      if (threeLab) update3dAppearance(threeLab.narrator, narratorProfile);
     }
 
     function create3dHuman(character) {
@@ -449,7 +560,9 @@
         eyes: new THREE.MeshStandardMaterial({ color: "#332932", roughness: 0.48 }),
         glasses: new THREE.MeshStandardMaterial({ color: "#547083", metalness: 0.35, roughness: 0.32 }),
         lenses: new THREE.MeshStandardMaterial({ color: "#afe7e6", transparent: true, opacity: 0.62, roughness: 0.2 }),
-        pack: new THREE.MeshStandardMaterial({ color: "#a4adbf", metalness: 0.2, roughness: 0.56 })
+        pack: new THREE.MeshStandardMaterial({ color: "#a4adbf", metalness: 0.2, roughness: 0.56 }),
+        cape: new THREE.MeshStandardMaterial({ color: "#8063c9", roughness: 0.68, side: THREE.DoubleSide }),
+        badge: new THREE.MeshStandardMaterial({ color: "#ffd166", metalness: 0.22, roughness: 0.42 })
       };
       const sphereGeometry = new THREE.SphereGeometry(1, 32, 24);
       const addSphere = (parent, material, x, y, z, sx, sy, sz) => {
@@ -570,6 +683,14 @@
       pack.position.set(0, 1.08, -0.27);
       pack.castShadow = true;
       group.add(pack);
+      const cape = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.68, 0.045), materials.cape);
+      cape.position.set(0, 1.02, -0.23);
+      cape.castShadow = true;
+      group.add(cape);
+      const badge = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 12), materials.badge);
+      badge.position.set(0, 1.15, 0.31);
+      badge.castShadow = true;
+      group.add(badge);
 
       const shadow = new THREE.Mesh(
         new THREE.CircleGeometry(0.39, 24),
@@ -581,7 +702,7 @@
       group.scale.setScalar(1.55);
       group.userData.characterParts = {
         materials, pants, torso, head, leftArm, rightArm, leftLeg, rightLeg,
-        coatPieces, goggles, pack, hairCap, hairFringe, hairBun, hairCurls
+        coatPieces, goggles, pack, cape, badge, hairCap, hairFringe, hairBun, hairCurls
       };
       update3dAppearance(group, character);
       return group;
@@ -603,6 +724,8 @@
       parts.coatPieces.forEach(piece => { piece.visible = character.equippedOutfit === "lab-coat"; });
       parts.goggles.visible = character.equippedAccessory === "safety-goggles";
       parts.pack.visible = character.equippedAccessory === "jetpack";
+      parts.cape.visible = character.equippedOutfit === "nebula-cape";
+      parts.badge.visible = character.equippedAccessory === "star-badge";
     }
 
     function update3dExplorer() {
@@ -699,7 +822,7 @@
           equippedAccessory: ""
         });
         scene.add(avatar);
-        threePreview = { renderer, scene, camera, avatar, lastFrame: 0 };
+        threePreview = { renderer, scene, camera, avatar, lastFrame: 0, userRotation: 0 };
         resize3dPreview();
       } catch (error) {
         creatorPreviewAvatar.textContent = `3D preview unavailable: ${error.message}`;
@@ -718,7 +841,7 @@
     function render3dPreview(time) {
       if (!threePreview || characterCreator.classList.contains("hidden") || time - threePreview.lastFrame < 32) return;
       threePreview.lastFrame = time;
-      threePreview.avatar.rotation.y = Math.sin(time * 0.0007) * 0.22;
+      threePreview.avatar.rotation.y = threePreview.userRotation + Math.sin(time * 0.0007) * 0.22;
       threePreview.avatar.position.y = Math.sin(time * 0.002) * 0.025;
       threePreview.renderer.render(threePreview.scene, threePreview.camera);
     }
@@ -867,6 +990,12 @@
     }
 
     function updateCreatorPreview() {
+      creatorPreviewHint.textContent = threePreview
+        ? "Preview your 3D human explorer · drag to rotate"
+        : "Illustrated preview · 3D needs WebGL and an internet connection";
+      creatorPreviewAvatar.setAttribute("aria-label", threePreview
+        ? "3D character preview. Drag to rotate, or use the left and right arrow keys."
+        : "Illustrated character preview. 3D rotation needs WebGL and an internet connection.");
       const selected = name => characterForm.querySelector(`input[name="${name}"]:checked`)?.value;
       const character = {
         skinTone: selected("skinTone"),
@@ -1170,8 +1299,10 @@
         avatar: "human",
         unlockedItems: ["mission-suit"],
         equippedOutfit: "mission-suit",
-        equippedAccessory: ""
+        equippedAccessory: "",
+        narratorVoiceGender: character.narratorVoiceGender === "man" ? "man" : "woman"
       };
+      scienceCredits = 0;
       playerPosition.x = 36;
       playerPosition.y = 13;
       missionIndex = 0;
@@ -1194,6 +1325,8 @@
       currentCharacter = save.character;
       missionIndex = save.missionIndex;
       temperature = save.temperature;
+      scienceCredits = save.scienceCredits;
+      narratorVoiceGender = currentCharacter.narratorVoiceGender;
       playerPosition.x = save.playerPosition?.x ?? 36;
       playerPosition.y = save.playerPosition?.y ?? 13;
       scannedParticles = new Set(save.scannedParticles);
@@ -1515,15 +1648,20 @@
       const utterance = new Utterance(message);
       utterance.lang = "en-US";
       utterance.rate = 0.93;
-      utterance.pitch = 1.05;
+      utterance.pitch = narratorVoiceGender === "man" ? 0.82 : 1.12;
       utterance.volume = 0.85;
       const voices = speechSynthesis.getVoices();
       const englishVoices = voices.filter(voice => /^en(-|$)/i.test(voice.lang));
-      const friendlyVoice = englishVoices.find(voice =>
-        /samantha|ava|jenny|aria|sara|google us english|natural|neural/i.test(voice.name)
-      );
-      const chosenVoice = friendlyVoice || englishVoices.find(voice => /^en-us$/i.test(voice.lang)) || englishVoices[0];
+      const genderVoicePattern = narratorVoiceGender === "man"
+        ? /\b(?:male|man)\b|daniel|david|mark|alex|fred|jorge|guy|thomas|aaron|lee|matthew|tom|oliver|george|andrew|james/i
+        : /\b(?:female|woman)\b|samantha|ava|jenny|aria|sara|victoria|karen|moira|tessa|allison|zira|susan|joanna|lisa|serena|kate|emily|amy|emma/i;
+      const chosenVoice = englishVoices.find(voice => genderVoicePattern.test(voice.name)) ||
+        englishVoices.find(voice => /^en-us$/i.test(voice.lang)) ||
+        englishVoices[0];
       if (chosenVoice) utterance.voice = chosenVoice;
+      narratorVoiceStatus.textContent = chosenVoice && genderVoicePattern.test(chosenVoice.name)
+        ? `Using the available ${narratorVoiceGender === "man" ? "man" : "woman"} narrator voice.`
+        : `This browser has no identified ${narratorVoiceGender === "man" ? "man" : "woman"} English voice. Using its closest available voice.`;
       utterance.onerror = event => {
         narratorVoiceStatus.textContent = `Narrator voice could not play: ${event.error}. Subtitles are still available.`;
       };
@@ -1658,6 +1796,7 @@
       }
 
       popMissionPanel();
+      scienceCredits += 20;
       const reward = wardrobeItems.find(item => item.rewardMission === missionIndex + 1);
       if (reward && !currentCharacter.unlockedItems.includes(reward.id)) {
         currentCharacter.unlockedItems.push(reward.id);
@@ -1673,8 +1812,8 @@
       }
 
       startMission();
-      feedback.textContent = `Mission complete! Your sample is ${target}. You earned ${reward.name}.`;
-      setNarration(`Mission complete! You earned ${reward.name}. ${narratorSubtitle.textContent}`);
+      feedback.textContent = `Mission complete! Your sample is ${target}. You earned ${reward.name} and 20 science credits.`;
+      setNarration(`Mission complete! You earned ${reward.name} and 20 science credits. ${narratorSubtitle.textContent}`);
       saveGame();
     }
 
@@ -1683,8 +1822,8 @@
       missionCount.textContent = "Mission complete!";
       missionTitle.textContent = "You did it!";
       missionCopy.textContent = "You guided water through solid, liquid, and gas. You’re a molecule master!";
-      feedback.textContent = "Amazing work, molecule master! You powered water through all three states.";
-      setNarration(`Mission complete, ${currentCharacter.name}! You earned every reward and guided water through solid, liquid, and gas.`);
+      feedback.textContent = `Amazing work, molecule master! You powered water through all three states and earned ${scienceCredits} science credits.`;
+      setNarration(`Mission complete, ${currentCharacter.name}! You earned every reward and ${scienceCredits} science credits while guiding water through solid, liquid, and gas.`);
       submitButton.disabled = true;
       coolButton.disabled = true;
       heatButton.disabled = true;
@@ -1802,6 +1941,32 @@
     });
     characterForm.addEventListener("input", updateCreatorPreview);
     characterForm.addEventListener("change", updateCreatorPreview);
+    creatorPreviewAvatar.addEventListener("pointerdown", event => {
+      if (!threePreview) return;
+      previewDrag = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startRotation: threePreview.userRotation
+      };
+      creatorPreviewAvatar.setPointerCapture(event.pointerId);
+    });
+    creatorPreviewAvatar.addEventListener("pointermove", event => {
+      if (!previewDrag || previewDrag.pointerId !== event.pointerId || !threePreview) return;
+      threePreview.userRotation = previewDrag.startRotation + (event.clientX - previewDrag.startX) * 0.012;
+      threePreview.renderer.render(threePreview.scene, threePreview.camera);
+    });
+    creatorPreviewAvatar.addEventListener("pointerup", event => {
+      if (!previewDrag || previewDrag.pointerId !== event.pointerId) return;
+      previewDrag = null;
+      if (creatorPreviewAvatar.hasPointerCapture(event.pointerId)) creatorPreviewAvatar.releasePointerCapture(event.pointerId);
+    });
+    creatorPreviewAvatar.addEventListener("pointercancel", () => { previewDrag = null; });
+    creatorPreviewAvatar.addEventListener("keydown", event => {
+      if (!threePreview || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
+      event.preventDefault();
+      threePreview.userRotation += event.key === "ArrowLeft" ? -0.35 : 0.35;
+      threePreview.renderer.render(threePreview.scene, threePreview.camera);
+    });
     document.querySelectorAll(".direction-pad [data-move]").forEach(button => {
       button.addEventListener("click", () => movePlayer(button.dataset.move));
     });
@@ -1837,6 +2002,20 @@
       saveGame();
       setNarration(`${item.name} equipped! Your explorer is ready for the mission.`);
     });
+    characterStoreButton.addEventListener("click", () => {
+      updateStore();
+      storeDialog.showModal();
+    });
+    storeCloseButton.addEventListener("click", () => storeDialog.close());
+    storeDialog.addEventListener("click", event => {
+      if (event.target === storeDialog) storeDialog.close();
+    });
+    storeItems.addEventListener("click", event => {
+      if (!(event.target instanceof Element)) return;
+      const button = event.target.closest("button[data-item-id]");
+      if (!button || button.disabled) return;
+      purchaseShopItem(button.dataset.itemId);
+    });
     if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
       narratorVoiceToggle.disabled = true;
       narratorVoiceToggle.textContent = "🔊 Narrator voice unavailable";
@@ -1848,6 +2027,12 @@
       narratorVoiceToggle.textContent = `🔊 Narrator voice: ${narratorVoiceEnabled ? "On" : "Off"}`;
       if (narratorVoiceEnabled) speakNarration(narratorSubtitle.textContent);
       else if (window.speechSynthesis) window.speechSynthesis.cancel();
+    });
+    narratorVoiceChoice.addEventListener("change", () => {
+      updateNarratorPresentation(narratorVoiceChoice.value);
+      if (currentCharacter) saveGame();
+      narratorVoiceStatus.textContent = `${narratorVoiceGender === "man" ? "Man" : "Woman"} narrator selected. Available speech depends on this browser's voices.`;
+      if (narratorVoiceEnabled) speakNarration(narratorSubtitle.textContent);
     });
     shareQrButton.addEventListener("click", () => {
       const qrUrl = new URL("https://api.qrserver.com/v1/create-qr-code/");
@@ -1908,6 +2093,7 @@
     makeParticles();
     setup3dLab();
     setup3dPreview();
+    updateStore();
     const savedGame = readSavedGame();
     continueButton.disabled = !savedGame;
     updateCreatorPreview();
